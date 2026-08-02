@@ -2,8 +2,9 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8" />
-    <link rel="apple-touch-icon" sizes="76x76" href="img/apple-icon.png">
-    <link rel="icon" type="image/png" href="img/logo.png">
+    <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <title>Dot.Files</title>
     <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport' />
@@ -254,7 +255,7 @@
         <!-- Navigation -->
         <nav class="navbar">
             <a href="/" class="navbar-brand">
-                <img src="img/logo.png" alt="Dot.Files logo">
+                <img src="{{ asset('images/logo.png') }}" alt="Dot.Files logo">
                 <span>Dot.Files</span>
             </a>
             <div class="nav-actions">
@@ -277,7 +278,7 @@
 
         <!-- Hero Body -->
         <div class="hero-body">
-            <img src="img/logo.png" alt="Dot.Files" class="hero-logo">
+            <img src="{{ asset('images/logo.png') }}" alt="Dot.Files" class="hero-logo">
             <span class="hero-tagline">Secure Cloud File Management</span>
             <h1 class="hero-title">Your files,<br><span>always within reach.</span></h1>
             <p class="hero-subtitle">

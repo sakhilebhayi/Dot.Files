@@ -18,20 +18,28 @@
 
 ## Overview
 
-Dot.Files is the file storage and management platform in the Dot ecosystem. Teams upload, organise, preview, and share files with fine-grained access controls — backed by AWS S3 and accessible via single sign-on from InfoDot.
+Dot.Files is the team file storage and management platform in the Dot ecosystem. Each team gets a recursive folder tree (`objects` table, adjacency-list model) that files and folders both hang off of; teams upload, organise, search, rename, and delete files and folders, and download individual files — with single sign-on from InfoDot.
+
+**Status:** this is a working application — real models, migrations, a Livewire file browser, and the ecosystem SSO handoff all exist and are wired together — but the domain is intentionally small. There is no S3 integration, no file previews, no version history, no sharing/collaboration layer, and no real-time notifications yet, despite earlier drafts of this README describing them. See "Features" below for what's actually implemented versus not.
 
 ---
 
 ## Features
 
-- Drag-and-drop file upload with progress tracking
-- Folder hierarchy with team and personal spaces
-- File previews for images, PDFs, and documents
-- Granular permissions — view, edit, download, share
-- Version history and restore
-- Real-time collaboration notifications via Reverb
-- Full-text file search via Laravel Scout
-- Ecosystem SSO — authenticate from InfoDot with a single click
+**Implemented:**
+- Recursive folder hierarchy per team, backed by a self-referential `objects` table (`staudenmeir/laravel-adjacency-list`)
+- Drag-and-drop file upload (FilePond) with progress, size-limited to 100MB and restricted to an explicit set of document/image/archive/media MIME types
+- Create folder, rename file/folder, delete file/folder (all scoped to the current team via `Obj::forCurrentTeam()`)
+- File download, gated by `FilePolicy::download` (team-membership check)
+- Full-text search across files and folders via Laravel Scout (TNTSearch driver by default)
+- Ecosystem SSO — authenticate from InfoDot via `/auth/ecosystem` with a single-use Sanctum token
+
+**Not implemented (despite being modeled or referenced elsewhere):**
+- File storage is local disk (`Storage::disk('local')`) everywhere in the codebase — the `.env.example` AWS keys are present but no S3/Flysystem-S3 code exists in `app/`
+- No file previews (images, PDFs, or otherwise) — the file browser only renders a download link
+- No version history or restore
+- No granular per-file permissions (view/edit/share) — the only authorization check is team-membership on download
+- No real-time collaboration or notifications — Reverb env vars are present in `.env.example` but nothing in `app/` broadcasts or listens on them
 
 ---
 
@@ -40,11 +48,12 @@ Dot.Files is the file storage and management platform in the Dot ecosystem. Team
 | Layer | Technology |
 |---|---|
 | Framework | Laravel 12 + PHP 8.4 |
-| Frontend | Livewire 3 + Vite 6 + Tailwind CSS 3.4 |
+| Frontend | Livewire 3 + Vite 6 + Tailwind CSS 3.4 (plus legacy Bootstrap/now-ui-kit assets still loaded on some pages) |
 | Auth | Jetstream 5 + Sanctum (ecosystem SSO) |
-| Database | PostgreSQL 16 (shared infodot instance) |
-| Storage | AWS S3 via Laravel Flysystem |
-| WebSockets | Laravel Reverb |
+| Database | PostgreSQL 16 (shared `infodot` instance — see `DB_DATABASE` in `.env.example`) |
+| Storage | Local disk (`storage/app`) via Laravel's `local` filesystem disk — no S3 integration exists in this repo |
+| Search | Laravel Scout (`SCOUT_DRIVER=tntsearch` by default) |
+| WebSockets | Laravel Reverb — configured via env vars only, not wired to any broadcast event |
 
 ---
 

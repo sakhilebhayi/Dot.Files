@@ -17,7 +17,7 @@ class CreateFoldersTable extends Migration
             $table->id();
             $table->uuid('uuid');
             $table->string('name');
-            $table->foreignId('team_id')->contrained('teams');
+            $table->foreignId('team_id')->constrained('teams');
             $table->timestamps();
         });
     }
