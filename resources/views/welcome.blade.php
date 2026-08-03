@@ -33,7 +33,7 @@
         .hero-bg {
             position: absolute;
             inset: 0;
-            background-image: url('img/header2.jpg');
+            background-image: url('https://images.unsplash.com/photo-1569235186275-626cb53b83ce?q=80&w=2400&auto=format&fit=crop');
             background-size: cover;
             background-position: center;
             z-index: 0;
@@ -44,7 +44,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: rgba(0, 0, 0, 0.52);
+            background: rgba(0, 0, 0, 0.65);
         }
 
         /* ── Navigation ───────────────────────────────── */
@@ -250,6 +250,7 @@
 </head>
 <body>
     <div class="hero">
+        <!-- Photographic Background: real filing-cabinet/document-archive photo by Maksym Kaharlytskyi (@qwitka), unsplash.com/photos/file-cabinet-Q9y3LRuuxmg -->
         <div class="hero-bg"></div>
 
         <!-- Navigation -->

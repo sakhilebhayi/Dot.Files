@@ -1,6 +1,6 @@
 ---
 title: Dot.Files — Platform Wiki
-version: 0.1.0
+version: 0.2.0
 status: draft
 owners: [Files Platform Lead]
 platform-id: dot-files
@@ -118,6 +118,7 @@ Given that this platform stores actual user file content (not just metadata like
 
 | Version | Date | Author | Change |
 |---|---|---|---|
+| 0.2.0 | 2026-08-03 | Sakhile Bhayi | Marketing-page pass on `resources/views/welcome.blade.php`, following the pattern already piloted on the `mines` repo. Found the page's starting state didn't match that pattern's assumptions: the nav and hero brand marks were already the real `public/images/logo.png` lockup (wired in a prior session per the 0.1.0 entry below), and the hero background was already a real, on-domain local photo (`public/img/header2.jpg` — colorful file folders/binders on office shelving) rather than an abstract CSS gradient, so no logo swap and no gradient-to-photo swap were actually needed. Upgraded the hero background anyway, from the untracked local JPEG to a real, licensed, photographer-credited Unsplash photo (filing-cabinet/document-archive drawer, by Maksym Kaharlytskyi, @qwitka, unsplash.com/photos/file-cabinet-Q9y3LRuuxmg) hotlinked via Unsplash's CDN (`images.unsplash.com`), matching the ecosystem's now-standard hotlink-plus-inline-HTML-comment-credit convention. Verified the CDN URL resolves with `curl -sI` (`HTTP/2 200`) before committing. Darkened the existing `.hero-bg::after` overlay from `rgba(0,0,0,0.52)` to `rgba(0,0,0,0.65)` to preserve adequate text contrast against the new, brighter photo. No other page content, layout, or copy changed. |
 | 0.1.0 | 2026-08-02 | Files Platform Lead | Initial platform-owned wiki, derived from the actual Laravel codebase (models, migrations, routes, controllers, Livewire components). Verified the `EcosystemAuthController` SSO contract and `DB_DATABASE=infodot` match the ecosystem-wide pattern. Ran a focused IDOR/tenant-scoping security scan — found the codebase's existing `forCurrentTeam()` scoping pattern already closes the common cross-tenant `find($id)` bug class; found and fixed one real migration bug (`contrained` → `constrained` typo in the folders migration that would fatal on first real `php artisan migrate`). Corrected README.md, which described AWS S3 storage, file previews, version history, granular sharing permissions, and Reverb-based realtime collaboration — none of which exist in this codebase; storage is local-disk only and the domain is materially smaller than the README claimed. Wired the real Dot.Files logo (`public/images/logo.png`, copied from the pre-existing `public/img/logo.png`) into `application-logo`, `application-mark`, and `authentication-card-logo` Jetstream vendor components (previously the unswapped default purple placeholder SVG on 3 of 4 auth pages: reset-password, two-factor-challenge, verify-email), generated `apple-touch-icon.png`/`favicon-32x32.png`/`favicon-16x16.png` via `sips`, and fixed a broken `img/apple-icon.png` favicon reference (file never existed) across `layouts/app.blade.php`, `layouts/guest.blade.php`, and `welcome.blade.php`. |
 
 ## Open Questions
