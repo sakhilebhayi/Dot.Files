@@ -9,17 +9,21 @@ class CreateTeamsTable extends Migration
     /**
      * Run the migrations.
      *
+     * Guarded: see Dot.Brain adr/ADR-0013.
+     *
      * @return void
      */
     public function up()
     {
-        Schema::create('teams', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->index();
-            $table->string('name');
-            $table->boolean('personal_team');
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('teams')) {
+            Schema::create('teams', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->index();
+                $table->string('name');
+                $table->boolean('personal_team');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

@@ -9,21 +9,28 @@ class CreateUsersTable extends Migration
     /**
      * Run the migrations.
      *
+     * Guarded: this platform's own copy of the shared Jetstream core
+     * migrations must be safe to run whether or not another Dot platform
+     * already created these tables against the same shared `infodot`
+     * database. See Dot.Brain adr/ADR-0013.
+     *
      * @return void
      */
     public function up()
     {
-        Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->rememberToken();
-            $table->foreignId('current_team_id')->nullable();
-            $table->text('profile_photo_path')->nullable();
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('users')) {
+            Schema::create('users', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('email')->unique();
+                $table->timestamp('email_verified_at')->nullable();
+                $table->string('password');
+                $table->rememberToken();
+                $table->foreignId('current_team_id')->nullable();
+                $table->text('profile_photo_path')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**
