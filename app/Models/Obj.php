@@ -5,14 +5,14 @@ namespace App\Models;
 use App\Models\Obj;
 use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
-use App\Models\Traits\RelatesToTeams;
+use App\Models\Concerns\HasTeamScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Staudenmeir\LaravelAdjacencyList\Eloquent\HasRecursiveRelationships;
 
 class Obj extends Model
 {
-    use HasFactory, RelatesToTeams, HasRecursiveRelationships, Searchable;
+    use HasFactory, HasTeamScope, HasRecursiveRelationships, Searchable;
 
     public $asYouType = true;
 

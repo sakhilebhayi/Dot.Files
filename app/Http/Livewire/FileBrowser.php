@@ -55,10 +55,8 @@ class FileBrowser extends Component
 	public function getResultsProperty()
 	{
 		if (!empty($this->query)) {
-			$teamId = $this->currentTeam?->id ?? 0;
 			return Obj::search($this->query)
 				->get()
-				->filter(fn ($obj) => $obj->team_id === $teamId)
 				->values()
 				->load('objectable');
 		}
@@ -67,7 +65,7 @@ class FileBrowser extends Component
 
 	public function deleteObject()
 	{
-		$obj = Obj::forCurrentTeam()->find($this->confirmingObjectDeletion);
+		$obj = Obj::find($this->confirmingObjectDeletion);
 		$this->confirmingObjectDeletion = null;
 
 		if (!$obj) {
@@ -112,7 +110,7 @@ class FileBrowser extends Component
 			'renamingObjectState.name' => 'required|max:255'
 		]);
 
-		$obj = Obj::forCurrentTeam()->find($this->renamingObject);
+		$obj = Obj::find($this->renamingObject);
 
 		if (!$obj) {
 			$this->renamingObject = null;
@@ -134,7 +132,7 @@ class FileBrowser extends Component
 			];
 		}
 
-		if ($object = Obj::forCurrentTeam()->find($id)) {
+		if ($object = Obj::find($id)) {
 			$this->renamingObjectState = [
 				'name' => $object->objectable->name
 			];

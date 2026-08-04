@@ -5,13 +5,14 @@ namespace App\Models;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Concerns\HasTeamScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class File extends Model
 {
-    use HasFactory;
+    use HasFactory, HasTeamScope;
 
-    protected $fillable = ['name', 'size', 'path'];
+    protected $fillable = ['name', 'size', 'path', 'team_id'];
 
     public function sizeForHumans()
     {
