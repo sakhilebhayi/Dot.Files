@@ -3,6 +3,7 @@
 namespace App\Http\Livewire;
 
 use App\Models\Obj;
+use App\Models\Team;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -24,14 +25,35 @@ class FileBrowser extends Component
 		'name' => ''
 	];
 
+	/**
+	 * FileController::index() already redirects to teams.create when the
+	 * page loads with no current team, but that guard doesn't cover this
+	 * component's own wire:click/wire:submit-triggered action methods
+	 * (createFolder, updatedUpload), which can still be invoked over the
+	 * Livewire wire protocol against a component that was mounted while a
+	 * team was current but whose team assignment changed since (e.g. the
+	 * user was removed from their last team mid-session). Mirrors the
+	 * null-currentTeam guard pattern used across the ecosystem.
+	 */
+	private function resolveCurrentTeam(): ?Team
+	{
+		return auth()->user()?->currentTeam;
+	}
+
 	public function createFolder()
 	{
+		$team = $this->resolveCurrentTeam();
+
+		if (! $team) {
+			abort(403, 'No active team selected.');
+		}
+
 		$this->validate([
 			'newFolderState.name' => 'required|max:255'
 		]);
 
-		$object = $this->currentTeam->objects()->make(['parent_id' => $this->object->id]);
-		$object->objectable()->associate($this->currentTeam->folders()->create($this->newFolderState));
+		$object = $team->objects()->make(['parent_id' => $this->object->id]);
+		$object->objectable()->associate($team->folders()->create($this->newFolderState));
 		$object->save();
 
 		$this->creatingNewFolder = false;
@@ -43,7 +65,7 @@ class FileBrowser extends Component
 
 	public function getCurrentTeamProperty()
 	{
-		return auth()->user()->currentTeam;
+		return $this->resolveCurrentTeam();
 	}
 
 	public $renamingObject;
@@ -78,6 +100,12 @@ class FileBrowser extends Component
 
 	public function updatedUpload($upload)
 	{
+		$team = $this->resolveCurrentTeam();
+
+		if (! $team) {
+			abort(403, 'No active team selected.');
+		}
+
 		$this->validate([
 			'upload' => [
 				'required',
@@ -89,9 +117,9 @@ class FileBrowser extends Component
 
 		$safeName = basename($upload->getClientOriginalName());
 
-		$object = $this->currentTeam->objects()->make(['parent_id' => $this->object->id]);
+		$object = $team->objects()->make(['parent_id' => $this->object->id]);
 		$object->objectable()->associate(
-			$this->currentTeam->files()->create([
+			$team->files()->create([
 				'name' => $safeName,
 				'size' => $upload->getSize(),
 				'path' => $upload->store('files', ['disk' => 'local']),
