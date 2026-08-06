@@ -1,8 +1,10 @@
 <x-guest-layout>
     <x-jet-authentication-card>
         <x-slot name="logo">
-            <img src="{{ asset('images/logo.png') }}" alt="Dot.Files" style="width: 150px;">
+            <x-jet-authentication-card-logo />
         </x-slot>
+
+        <h1 class="font-display font-semibold text-2xl text-[var(--ink)] mb-6">Create your Dot.Files account</h1>
 
         <x-jet-validation-errors class="mb-4" />
 
@@ -30,7 +32,7 @@
             </div>
 
             <div class="flex items-center justify-end mt-4">
-                <a class="underline text-sm text-gray-600 hover:text-gray-900" href="{{ route('login') }}">
+                <a class="underline text-sm text-[var(--ink-soft)] hover:text-[var(--ink)]" href="{{ route('login') }}">
                     {{ __('Already registered?') }}
                 </a>
 

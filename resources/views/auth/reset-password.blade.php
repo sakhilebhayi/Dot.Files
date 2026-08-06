@@ -4,6 +4,8 @@
             <x-jet-authentication-card-logo />
         </x-slot>
 
+        <h1 class="font-display font-semibold text-2xl text-[var(--ink)] mb-6">Choose a new password</h1>
+
         <x-jet-validation-errors class="mb-4" />
 
         <form method="POST" action="{{ route('password.update') }}">

@@ -1,13 +1,15 @@
 <x-guest-layout>
     <x-jet-authentication-card>
         <x-slot name="logo">
-            <img src="{{ asset('images/logo.png') }}" alt="Dot.Files" style="width: 150px;">
+            <x-jet-authentication-card-logo />
         </x-slot>
+
+        <h1 class="font-display font-semibold text-2xl text-[var(--ink)] mb-6">Sign in to Dot.Files</h1>
 
         <x-jet-validation-errors class="mb-4" />
 
         @if (session('status'))
-            <div class="mb-4 font-medium text-sm text-green-600">
+            <div class="mb-4 font-medium text-sm text-[var(--mint-deep)]">
                 {{ session('status') }}
             </div>
         @endif
@@ -27,14 +29,14 @@
 
             <div class="block mt-4">
                 <label for="remember_me" class="flex items-center">
-                    <input id="remember_me" type="checkbox" class="form-checkbox" name="remember">
-                    <span class="ml-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
+                    <input id="remember_me" type="checkbox" class="form-checkbox rounded border-[var(--line)] text-[var(--gold-deep)] focus:ring-[var(--gold)]" name="remember">
+                    <span class="ml-2 text-sm text-[var(--ink-soft)]">{{ __('Remember me') }}</span>
                 </label>
             </div>
 
             <div class="flex items-center justify-end mt-4">
                 @if (Route::has('password.request'))
-                    <a class="underline text-sm text-gray-600 hover:text-gray-900" href="{{ route('password.request') }}">
+                    <a class="underline text-sm text-[var(--ink-soft)] hover:text-[var(--ink)]" href="{{ route('password.request') }}">
                         {{ __('Forgot your password?') }}
                     </a>
                 @endif

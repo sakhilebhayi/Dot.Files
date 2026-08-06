@@ -1,15 +1,17 @@
 <x-guest-layout>
     <x-jet-authentication-card>
         <x-slot name="logo">
-            <img src="{{ asset('images/logo.png') }}" alt="Dot.Files" style="width: 150px;">
+            <x-jet-authentication-card-logo />
         </x-slot>
 
-        <div class="mb-4 text-sm text-gray-600">
+        <h1 class="font-display font-semibold text-2xl text-[var(--ink)] mb-3">Reset your password</h1>
+
+        <div class="mb-4 text-sm text-[var(--ink-soft)]">
             {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
         </div>
 
         @if (session('status'))
-            <div class="mb-4 font-medium text-sm text-green-600">
+            <div class="mb-4 font-medium text-sm text-[var(--mint-deep)]">
                 {{ session('status') }}
             </div>
         @endif

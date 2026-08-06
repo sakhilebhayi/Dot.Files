@@ -123,6 +123,11 @@
 
         <!-- Hero -->
         <section class="relative min-h-[100dvh] flex items-end overflow-hidden bg-[var(--paper)]">
+            <!-- Photo: rows of grey filing cabinet drawers, by Maksym Kaharlytskyi, unsplash.com/photos/file-cabinet-Q9y3LRuuxmg -->
+            <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1569235186275-626cb53b83ce?q=80&w=2400&auto=format&fit=crop');"></div>
+            <div class="absolute inset-0" style="background: linear-gradient(180deg, rgba(251,247,238,0.5) 0%, rgba(251,247,238,0.8) 45%, #fbf7ee 94%);"></div>
+            <div class="absolute inset-0" style="background: linear-gradient(90deg, #fbf7ee 0%, rgba(251,247,238,0.68) 40%, transparent 72%);"></div>
+
             <!-- Signature element: line-art open folder + document, echoing the real logo's folder icon -->
             <svg class="hidden lg:block absolute right-[4%] top-[14%] h-[70%] w-auto opacity-[0.09] pointer-events-none" viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M40 210V70a10 10 0 0 1 10-10h44l18 20h88a10 10 0 0 1 10 10v20" stroke="#2b2a25" stroke-width="3" stroke-linejoin="round"/>
@@ -241,6 +246,10 @@
 
         <!-- CTA -->
         <section class="relative py-28 sm:py-36 px-5 sm:px-8 overflow-hidden bg-[var(--ink)]">
+            <!-- Photo: red file folders neatly arranged on a shelf, by Zulfugar Karimov, unsplash.com/photos/red-file-folders-are-neatly-arranged-on-a-shelf-SiJt15u6Yw4 -->
+            <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1750935578389-6e1445f5fd8d?q=80&w=2400&auto=format&fit=crop');"></div>
+            <div class="absolute inset-0" style="background: linear-gradient(180deg, #2b2a25 0%, rgba(43,42,37,0.86) 50%, #2b2a25 100%);"></div>
+
             <div class="relative z-10 max-w-2xl mx-auto text-center reveal" data-reveal>
                 <h2 class="font-display font-semibold text-3xl sm:text-4xl text-[var(--paper)] leading-tight mb-5">
                     Your team's files belong in one place, not six
