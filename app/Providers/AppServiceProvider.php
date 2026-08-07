@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Http\Livewire\FileBrowser;
+use App\Http\Livewire\NavigationDropdown;
 use App\Models\File;
 use App\Models\Folder;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -52,8 +54,8 @@ class AppServiceProvider extends ServiceProvider
         // Livewire v3 changed the default component namespace from
         // App\Http\Livewire to App\Livewire. Register our components
         // explicitly so they are found regardless of auto-discovery path.
-        Livewire::component('file-browser', \App\Http\Livewire\FileBrowser::class);
-        Livewire::component('navigation-dropdown', \App\Http\Livewire\NavigationDropdown::class);
+        Livewire::component('file-browser', FileBrowser::class);
+        Livewire::component('navigation-dropdown', NavigationDropdown::class);
 
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());

@@ -2,6 +2,7 @@
 
 namespace App\Http\Livewire;
 
+use Illuminate\View\View;
 use Livewire\Component;
 
 class NavigationDropdown extends Component
@@ -18,7 +19,7 @@ class NavigationDropdown extends Component
     /**
      * Render the component.
      *
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function render()
     {

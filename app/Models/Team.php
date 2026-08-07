@@ -2,9 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Obj;
-use App\Models\File;
-use App\Models\Folder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Jetstream\Events\TeamCreated;
 use Laravel\Jetstream\Events\TeamDeleted;
@@ -47,8 +44,7 @@ class Team extends JetstreamTeam
 
     public static function booted()
     {
-        static::created(function ($team)
-        {
+        static::created(function ($team) {
             $object = $team->objects()->make(['parent_id' => null]);
             $object->objectable()->associate($team->folders()->create(['name' => $team->name]));
             $object->save();

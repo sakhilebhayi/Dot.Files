@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Support\Str;
-use Illuminate\Database\Eloquent\Model;
 use App\Models\Concerns\HasTeamScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Folder extends Model
 {
@@ -15,8 +15,7 @@ class Folder extends Model
 
     public static function booted()
     {
-        static::creating(function ($model)
-        {
+        static::creating(function ($model) {
             $model->uuid = Str::uuid();
         });
     }

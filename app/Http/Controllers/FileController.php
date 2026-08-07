@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Obj;
 use App\Models\File;
+use App\Models\Obj;
 use App\Models\Team;
 use Illuminate\Http\Request;
-use App\Policies\FilePolicy;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
@@ -37,14 +36,14 @@ class FileController extends Controller
         $uuid = $request->query('uuid')
             ?? Obj::whereNull('parent_id')->value('uuid');
 
-    	$object = Obj::with('children.objectable', 'ancestorsAndSelf.objectable')
-    	    ->where('uuid', $uuid)
-    	    ->firstOrFail();
+        $object = Obj::with('children.objectable', 'ancestorsAndSelf.objectable')
+            ->where('uuid', $uuid)
+            ->firstOrFail();
 
-    	return view('files', [
-    		'object' => $object,
-    		'ancestors' => $object->ancestorsAndSelf()->breadthFirst()->get()
-    	]);
+        return view('files', [
+            'object' => $object,
+            'ancestors' => $object->ancestorsAndSelf()->breadthFirst()->get(),
+        ]);
     }
 
     public function download(File $file)

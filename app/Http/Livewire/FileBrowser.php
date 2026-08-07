@@ -9,163 +9,165 @@ use Livewire\WithFileUploads;
 
 class FileBrowser extends Component
 {
-	use WithFileUploads;
+    use WithFileUploads;
 
-	public $query;
+    public $query;
 
-	public $upload;
+    public $upload;
 
-	public $object;
+    public $object;
 
-	public $ancestors;
+    public $ancestors;
 
-	public $creatingNewFolder = false;
+    public $creatingNewFolder = false;
 
-	public $newFolderState = [
-		'name' => ''
-	];
+    public $newFolderState = [
+        'name' => '',
+    ];
 
-	/**
-	 * FileController::index() already redirects to teams.create when the
-	 * page loads with no current team, but that guard doesn't cover this
-	 * component's own wire:click/wire:submit-triggered action methods
-	 * (createFolder, updatedUpload), which can still be invoked over the
-	 * Livewire wire protocol against a component that was mounted while a
-	 * team was current but whose team assignment changed since (e.g. the
-	 * user was removed from their last team mid-session). Mirrors the
-	 * null-currentTeam guard pattern used across the ecosystem.
-	 */
-	private function resolveCurrentTeam(): ?Team
-	{
-		return auth()->user()?->currentTeam;
-	}
+    /**
+     * FileController::index() already redirects to teams.create when the
+     * page loads with no current team, but that guard doesn't cover this
+     * component's own wire:click/wire:submit-triggered action methods
+     * (createFolder, updatedUpload), which can still be invoked over the
+     * Livewire wire protocol against a component that was mounted while a
+     * team was current but whose team assignment changed since (e.g. the
+     * user was removed from their last team mid-session). Mirrors the
+     * null-currentTeam guard pattern used across the ecosystem.
+     */
+    private function resolveCurrentTeam(): ?Team
+    {
+        return auth()->user()?->currentTeam;
+    }
 
-	public function createFolder()
-	{
-		$team = $this->resolveCurrentTeam();
+    public function createFolder()
+    {
+        $team = $this->resolveCurrentTeam();
 
-		if (! $team) {
-			abort(403, 'No active team selected.');
-		}
+        if (! $team) {
+            abort(403, 'No active team selected.');
+        }
 
-		$this->validate([
-			'newFolderState.name' => 'required|max:255'
-		]);
+        $this->validate([
+            'newFolderState.name' => 'required|max:255',
+        ]);
 
-		$object = $team->objects()->make(['parent_id' => $this->object->id]);
-		$object->objectable()->associate($team->folders()->create($this->newFolderState));
-		$object->save();
+        $object = $team->objects()->make(['parent_id' => $this->object->id]);
+        $object->objectable()->associate($team->folders()->create($this->newFolderState));
+        $object->save();
 
-		$this->creatingNewFolder = false;
+        $this->creatingNewFolder = false;
 
-		$this->newFolderState = ['name' => ''];
+        $this->newFolderState = ['name' => ''];
 
-		$this->object = $this->object->fresh();
-	}
+        $this->object = $this->object->fresh();
+    }
 
-	public function getCurrentTeamProperty()
-	{
-		return $this->resolveCurrentTeam();
-	}
+    public function getCurrentTeamProperty()
+    {
+        return $this->resolveCurrentTeam();
+    }
 
-	public $renamingObject;
-	
-	public $showingObjectloadForm = false; 
+    public $renamingObject;
 
-	public $confirmingObjectDeletion;
+    public $showingObjectloadForm = false;
 
-	public function getResultsProperty()
-	{
-		if (!empty($this->query)) {
-			return Obj::search($this->query)
-				->get()
-				->values()
-				->load('objectable');
-		}
-		return $this->object->children;
-	}
+    public $confirmingObjectDeletion;
 
-	public function deleteObject()
-	{
-		$obj = Obj::find($this->confirmingObjectDeletion);
-		$this->confirmingObjectDeletion = null;
+    public function getResultsProperty()
+    {
+        if (! empty($this->query)) {
+            return Obj::search($this->query)
+                ->get()
+                ->values()
+                ->load('objectable');
+        }
 
-		if (!$obj) {
-			return;
-		}
+        return $this->object->children;
+    }
 
-		$obj->delete();
-		$this->object = $this->object->fresh();
-	}
+    public function deleteObject()
+    {
+        $obj = Obj::find($this->confirmingObjectDeletion);
+        $this->confirmingObjectDeletion = null;
 
-	public function updatedUpload($upload)
-	{
-		$team = $this->resolveCurrentTeam();
+        if (! $obj) {
+            return;
+        }
 
-		if (! $team) {
-			abort(403, 'No active team selected.');
-		}
+        $obj->delete();
+        $this->object = $this->object->fresh();
+    }
 
-		$this->validate([
-			'upload' => [
-				'required',
-				'file',
-				'max:102400',
-				'mimes:pdf,csv,txt,text,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,svg,zip,tar,gz,mp4,mp3,mov,avi',
-			],
-		]);
+    public function updatedUpload($upload)
+    {
+        $team = $this->resolveCurrentTeam();
 
-		$safeName = basename($upload->getClientOriginalName());
+        if (! $team) {
+            abort(403, 'No active team selected.');
+        }
 
-		$object = $team->objects()->make(['parent_id' => $this->object->id]);
-		$object->objectable()->associate(
-			$team->files()->create([
-				'name' => $safeName,
-				'size' => $upload->getSize(),
-				'path' => $upload->store('files', ['disk' => 'local']),
-			])
-		);
+        $this->validate([
+            'upload' => [
+                'required',
+                'file',
+                'max:102400',
+                'mimes:pdf,csv,txt,text,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,svg,zip,tar,gz,mp4,mp3,mov,avi',
+            ],
+        ]);
 
-		$object->save();
-		$this->object = $this->object->fresh();
-	}
+        $safeName = basename($upload->getClientOriginalName());
 
-	public $renamingObjectState = ['name' => null];
+        $object = $team->objects()->make(['parent_id' => $this->object->id]);
+        $object->objectable()->associate(
+            $team->files()->create([
+                'name' => $safeName,
+                'size' => $upload->getSize(),
+                'path' => $upload->store('files', ['disk' => 'local']),
+            ])
+        );
 
-	public function renameObject()
-	{
-		$this->validate([
-			'renamingObjectState.name' => 'required|max:255'
-		]);
+        $object->save();
+        $this->object = $this->object->fresh();
+    }
 
-		$obj = Obj::find($this->renamingObject);
+    public $renamingObjectState = ['name' => null];
 
-		if (!$obj) {
-			$this->renamingObject = null;
-			return;
-		}
+    public function renameObject()
+    {
+        $this->validate([
+            'renamingObjectState.name' => 'required|max:255',
+        ]);
 
-		$obj->objectable->update($this->renamingObjectState);
+        $obj = Obj::find($this->renamingObject);
 
-		$this->object = $this->object->fresh();
+        if (! $obj) {
+            $this->renamingObject = null;
 
-		$this->renamingObject = null;
-	}
+            return;
+        }
 
-	public function updatingRenamingObject($id)
-	{
-		if ($id === null) {
-			$this->renamingObjectState = [
-				'name' => ''
-			];
-		}
+        $obj->objectable->update($this->renamingObjectState);
 
-		if ($object = Obj::find($id)) {
-			$this->renamingObjectState = [
-				'name' => $object->objectable->name
-			];
-		}
-	}
+        $this->object = $this->object->fresh();
+
+        $this->renamingObject = null;
+    }
+
+    public function updatingRenamingObject($id)
+    {
+        if ($id === null) {
+            $this->renamingObjectState = [
+                'name' => '',
+            ];
+        }
+
+        if ($object = Obj::find($id)) {
+            $this->renamingObjectState = [
+                'name' => $object->objectable->name,
+            ];
+        }
+    }
 
     public function render()
     {
