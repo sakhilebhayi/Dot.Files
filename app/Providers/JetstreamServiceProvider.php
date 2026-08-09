@@ -7,8 +7,10 @@ use App\Actions\Jetstream\CreateTeam;
 use App\Actions\Jetstream\DeleteTeam;
 use App\Actions\Jetstream\DeleteUser;
 use App\Actions\Jetstream\UpdateTeamName;
+use App\Http\Livewire\DeleteTeamForm;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Jetstream\Jetstream;
+use Livewire\Livewire;
 
 class JetstreamServiceProvider extends ServiceProvider
 {
@@ -36,6 +38,8 @@ class JetstreamServiceProvider extends ServiceProvider
         Jetstream::addTeamMembersUsing(AddTeamMember::class);
         Jetstream::deleteTeamsUsing(DeleteTeam::class);
         Jetstream::deleteUsersUsing(DeleteUser::class);
+
+        Livewire::component('teams.delete-team-form', DeleteTeamForm::class);
     }
 
     /**
