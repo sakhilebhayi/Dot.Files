@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\EcosystemAuthController;
+use App\Http\Controllers\DeletionModerationController;
 use App\Http\Controllers\FileController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -40,4 +41,12 @@ Route::get('/cookies', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/files', [FileController::class, 'index'])->name('files');
     Route::get('/files/{file}', [FileController::class, 'download'])->name('files.download');
+});
+
+Route::middleware(['auth', 'verified', 'operator'])->prefix('operator')->name('operator.')->group(function () {
+    Route::get('/deletion-requests', [DeletionModerationController::class, 'index'])->name('deletion-requests.index');
+    Route::post('/deletion-requests/team/{teamDeletionRequest}/approve', [DeletionModerationController::class, 'approveTeam'])->name('deletion-requests.team.approve');
+    Route::post('/deletion-requests/team/{teamDeletionRequest}/reject', [DeletionModerationController::class, 'rejectTeam'])->name('deletion-requests.team.reject');
+    Route::post('/deletion-requests/bulk/{bulkDeletionRequest}/approve', [DeletionModerationController::class, 'approveBulk'])->name('deletion-requests.bulk.approve');
+    Route::post('/deletion-requests/bulk/{bulkDeletionRequest}/reject', [DeletionModerationController::class, 'rejectBulk'])->name('deletion-requests.bulk.reject');
 });

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureCurrentTeam;
+use App\Http\Middleware\EnsurePlatformOperator;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'verified' => EnsureEmailIsVerified::class,
+            'operator' => EnsurePlatformOperator::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
