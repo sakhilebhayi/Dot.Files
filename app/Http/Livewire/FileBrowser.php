@@ -2,6 +2,7 @@
 
 namespace App\Http\Livewire;
 
+use App\Models\BulkDeletionRequest;
 use App\Models\Obj;
 use App\Models\Team;
 use Livewire\Component;
@@ -97,6 +98,32 @@ class FileBrowser extends Component
 
         $obj->delete();
         $this->object = $this->object->fresh();
+    }
+
+    public array $selectedObjects = [];
+
+    public bool $bulkDeletionRequested = false;
+
+    public function requestBulkDeletion(): void
+    {
+        if (empty($this->selectedObjects)) {
+            return;
+        }
+
+        $team = $this->resolveCurrentTeam();
+
+        if (! $team) {
+            abort(403, 'No active team selected.');
+        }
+
+        BulkDeletionRequest::create([
+            'team_id' => $team->id,
+            'requested_by' => auth()->id(),
+            'object_ids' => array_values($this->selectedObjects),
+        ]);
+
+        $this->selectedObjects = [];
+        $this->bulkDeletionRequested = true;
     }
 
     public function updatedUpload($upload)

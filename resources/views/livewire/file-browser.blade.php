@@ -8,12 +8,24 @@
                 <button class="bg-gray-200 px-6 h-12 rounded-lg mr-2" wire:click="$set('creatingNewFolder', true)">
                     New folder
                 </button>
-                <button class="bg-blue-600 text-white font-bold px-6 h-12 rounded-lg" wire:click="$set('showingObjectloadForm', true)">
+                <button class="bg-blue-600 text-white font-bold px-6 h-12 rounded-lg mr-2" wire:click="$set('showingObjectloadForm', true)">
                     upload files
+                </button>
+                <button class="bg-red-600 text-white font-bold px-6 h-12 rounded-lg"
+                    wire:click="requestBulkDeletion"
+                    @if (empty($selectedObjects)) disabled @endif>
+                    Delete Selected ({{ count($selectedObjects) }})
                 </button>
             </div>
         </div>
     </div>
+
+    @if ($bulkDeletionRequested)
+        <div class="mb-4 p-3 bg-amber-100 text-amber-800 font-bold rounded-lg">
+            Deletion requested for the selected items. A platform operator must approve it before anything is removed.
+        </div>
+    @endif
+
     <div class="border-2 border-gray-200 rounded-lg">
         <div class="py-2 px-3">
             <div class="flex items-center">
@@ -39,6 +51,7 @@
             <table class="w-full">
             <thead class="bg-gray-100">
                 <tr>
+                    <th class="p-2 w-8"></th>
                     <th class="text-left py-2 px-3">Name</th>
                     <th class="text-left py-2 px-3 w-2/12">Size</th>
                     <th class="text-left py-2 px-3 w-2/12">Created</th>
@@ -49,6 +62,7 @@
 
         		@if ($creatingNewFolder)
         			<tr class="border-gray-100 border-b-2 hover:bg-gray-100 ">
+        				<td></td>
         				<td class="px-3">
         					<form class="flex items-center" wire:submit.prevent="createFolder">
         						<input type="text" name="" id="" class="w-full px-3 h-10 border-2 border-gray-200 rounded-lg mr-2" wire:model="newFolderState.name">
@@ -67,6 +81,9 @@
         		@endif
                 @foreach ($this->results as $child)
 	                <tr class="border-gray-100 @if (!$loop->last) border-b-2 @endif hover:bg-gray-100 ">
+	                    <td class="py-2 px-3">
+	                        <input type="checkbox" wire:model="selectedObjects" value="{{ $child->id }}">
+	                    </td>
 	                    <td class="py-2 px-3 flex items-center">
                             @if ($child->objectable_type === 'file')
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-6 text-blue-700">
