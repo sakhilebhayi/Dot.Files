@@ -48,6 +48,28 @@ return [
             'root' => storage_path('app'),
         ],
 
+        /*
+         * The shared Dot.Files blob store.
+         *
+         * Both products read and write the same `files` rows, so a
+         * `files.path` written by either has to resolve to the same bytes.
+         * `FILES_ROOT` is what makes that true on a host running both; on a
+         * normal single-app deployment it stays unset and the disk is exactly
+         * where `local` has always put uploads (storage/app), so every path
+         * already in the table keeps resolving.
+         *
+         * `?:` rather than env()'s second argument: a `.env` carrying a bare
+         * `FILES_ROOT=` yields '' - not null - and would silently root the
+         * disk at the process's current directory.
+         */
+        'files' => [
+            'driver' => env('FILES_DISK', 'local'),
+            'root' => env('FILES_ROOT') ?: storage_path('app'),
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

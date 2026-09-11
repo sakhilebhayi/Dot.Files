@@ -13,6 +13,12 @@ class CreateFoldersTable extends Migration
      */
     public function up()
     {
+        // Guarded for the same reason as `objects` - see
+        // 2020_11_05_191705_create_objs_table.php.
+        if (Schema::hasTable('folders')) {
+            return;
+        }
+
         Schema::create('folders', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid');

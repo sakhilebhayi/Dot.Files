@@ -8,11 +8,22 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
+/**
+ * @property int $id
+ * @property string $uuid
+ * @property string $name
+ * @property int $size
+ * @property string $path
+ * @property string|null $mime_type
+ * @property int|null $owner_id
+ * @property int $team_id
+ * @property-read Team|null $team
+ */
 class File extends Model
 {
     use HasFactory, HasTeamScope;
 
-    protected $fillable = ['name', 'size', 'path', 'team_id'];
+    protected $fillable = ['name', 'size', 'path', 'mime_type', 'owner_id', 'team_id'];
 
     public function sizeForHumans()
     {
@@ -34,7 +45,21 @@ class File extends Model
         });
 
         static::deleting(function ($model) {
-            Storage::disk('local')->delete($model->path);
+            // The `files` disk, not `local`: the blob store is shared with
+            // Dot.Doc and its root is configurable (FILES_ROOT). It defaults
+            // to storage/app, which is where `local` put every existing row's
+            // bytes, so nothing already stored moves.
+            Storage::disk('files')->delete($model->path);
         });
+    }
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class);
+    }
+
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'owner_id');
     }
 }

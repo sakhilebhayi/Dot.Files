@@ -13,6 +13,16 @@ class CreateObjsTable extends Migration
      */
     public function up()
     {
+        // Guarded: `objects` is shared with Dot.Doc on the `infodot` database
+        // (see 2026_09_11_000001 and the Dot.Doc side's
+        // 2026_09_08_000001_create_shared_files_tree_tables.php). Whichever
+        // product migrates first creates it; this one then skips rather than
+        // failing with "relation already exists". Anything the shape is
+        // missing is added by the 2026_09_11_* migrations, never here.
+        if (Schema::hasTable('objects')) {
+            return;
+        }
+
         Schema::create('objects', function (Blueprint $table) {
             $table->id();
             $table->uuid('uuid');

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Http\Livewire\FileBrowser;
 use App\Http\Livewire\NavigationDropdown;
+use App\Models\Document;
 use App\Models\File;
 use App\Models\Folder;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -46,9 +47,15 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        // The shared Dot.Files tree's three node kinds. `document` points at a
+        // Dot.Doc row on the shared `infodot` database and is read-only from
+        // here (App\Models\Document); the alias has to be registered on both
+        // sides or the same `objects.objectable_type` string resolves to a
+        // class in one product and to nothing in the other.
         Relation::morphMap([
             'file' => File::class,
             'folder' => Folder::class,
+            'document' => Document::class,
         ]);
 
         // Livewire v3 changed the default component namespace from
