@@ -8,6 +8,11 @@
                 <button class="bg-gray-200 px-6 h-12 rounded-lg mr-2" wire:click="$set('creatingNewFolder', true)">
                     New folder
                 </button>
+                {{-- One click into Dot.Doc, signed in, with this folder as the
+                     destination. The token is minted by the action, not here. --}}
+                <button class="bg-gray-200 px-6 h-12 rounded-lg mr-2" wire:click="newDocument" wire:loading.attr="disabled">
+                    New document
+                </button>
                 <button class="bg-blue-600 text-white font-bold px-6 h-12 rounded-lg mr-2" wire:click="$set('showingObjectloadForm', true)">
                     upload files
                 </button>
@@ -103,6 +108,25 @@
                                 </a>
                             @endif
 
+                            {{-- A Dot.Doc document standing in the same tree. Its
+                                 title, versions and content live over there; what
+                                 is here is the row saying where it is filed, and
+                                 the one-click way back to it. --}}
+                            @if ($child->objectable_type === 'document')
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-6 text-amber-600">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span class="p-2 font-bold text-gray-800 flex-grow">
+                                    {{ $child->name() }}
+                                </span>
+                                <button type="button"
+                                    class="text-amber-700 font-bold whitespace-nowrap"
+                                    wire:click="openInDocs({{ $child->id }})"
+                                    wire:loading.attr="disabled">
+                                    Open in Dot.Doc
+                                </button>
+                            @endif
+
 	                    	@if ($renamingObject === $child->id)
 	                    		<form class="flex items-center ml-2 flex-grow" wire:submit.prevent="renameObject">
 	                    			<input type="text" name="" id="" class="w-full px-3 h-10 border-2 border-gray-200 rounded-lg mr-2" wire:model="renamingObjectState.name">
@@ -131,12 +155,27 @@
 	                    <td class="py-2 px-3">
 	                        <div class="flex justify-end items-center">
 	                            <ul class="flex items-center">
-	                                <li class="mr-4">
-	                                    <button class="text-gray-400 font-bold"
-	                                    wire:click="$set('renamingObject', {{ $child->id }})">
-	                                        Rename
-	                                    </button>
-	                                </li>
+	                                @if ($child->objectable_type === 'file')
+	                                    <li class="mr-4">
+	                                        {{-- Signed, ten minutes, and only rendered
+	                                             inline for a safe type - see
+	                                             FileController::INLINE_TYPES. --}}
+	                                        <a class="text-gray-400 font-bold" target="_blank" rel="noopener"
+	                                            href="{{ $this->viewUrl($child) }}">
+	                                            View
+	                                        </a>
+	                                    </li>
+	                                @endif
+	                                @if ($child->objectable_type !== 'document')
+	                                    <li class="mr-4">
+	                                        {{-- Not offered for a document: its title
+	                                             belongs to Dot.Doc and is renamed there. --}}
+	                                        <button class="text-gray-400 font-bold"
+	                                        wire:click="$set('renamingObject', {{ $child->id }})">
+	                                            Rename
+	                                        </button>
+	                                    </li>
+	                                @endif
 	                                <li class="mr-4">
 	                                    <button class="text-red-400 font-bold"
 	                                    wire:click="$set('confirmingObjectDeletion', {{ $child->id }})">
@@ -163,7 +202,11 @@
         	</x-slot>
 
         	<x-slot name="content">
-        		{{ __('Are you sure you want to delete this item?') }}
+        		@if ($this->confirmingIsDocument)
+        			{{ __('This removes the document from your Dot.Files tree. The document itself stays in Dot.Doc — delete it there if you want it gone for good.') }}
+        		@else
+        			{{ __('Are you sure you want to delete this item?') }}
+        		@endif
         	</x-slot>
 
         	<x-slot name="footer">

@@ -40,6 +40,17 @@ Route::get('/cookies', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/files', [FileController::class, 'index'])->name('files');
+
+    // Reading one file out of the private `files` disk in the browser.
+    // `signed` proves the link was minted here and has not expired (ten
+    // minutes, minted by FileBrowser::viewUrl()); the controller then checks
+    // the viewer belongs to the FILE'S team, so a signed link is not a bearer
+    // token for anyone who happens to be logged in. Declared before the
+    // download route so the two-segment path is never shadowed.
+    Route::get('/files/{file}/view', [FileController::class, 'view'])
+        ->middleware('signed')
+        ->name('files.view');
+
     Route::get('/files/{file}', [FileController::class, 'download'])->name('files.download');
 });
 
