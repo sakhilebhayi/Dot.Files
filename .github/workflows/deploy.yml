@@ -1,0 +1,99 @@
+name: Deploy to Production
+
+# Manual-only, mirroring the other Dot apps on this host: trigger from the
+# Actions tab (or `gh workflow run deploy.yml -f confirm=deploy`) when a
+# release is ready. Requires the DEPLOY_* repository secrets and a tree
+# already adopted by adopt.yml. Dot.Files has no scheduled commands, so
+# this deploy never touches the account's shared crontab.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm deploying main to production'
+        required: true
+
+concurrency:
+  group: files-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy main to files.infodot.co.za
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Refuse unconfirmed runs
+        if: ${{ github.event.inputs.confirm != 'deploy' }}
+        run: |
+          echo '::error::Confirmation input was not "deploy" -- aborting.'
+          exit 1
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Deploy
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+              "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+              DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}" \
+              'bash -s' <<'DEPLOY'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          PHP=php
+          DOCROOT="$(dirname "$DEPLOY_PATH")"
+
+          if [ ! -d .git ]; then
+            echo "::error::$DEPLOY_PATH is not a git checkout yet -- run adopt.yml first."; exit 1
+          fi
+
+          echo "== Current release: $(git rev-parse --short HEAD)"
+
+          git fetch origin main
+
+          # Maintenance mode only for the risky window (migrations).
+          $PHP artisan down --retry=30 || true
+
+          git reset --hard origin/main
+          composer install --no-interaction --optimize-autoloader --no-dev
+
+          # Built frontend assets are COMMITTED in public/build -- no npm.
+          $PHP artisan migrate --force
+
+          # Caches are rebuilt here so every cached path is the host's own
+          # (a cache shipped from another machine is what broke /up before).
+          $PHP artisan optimize:clear
+          $PHP artisan config:cache
+          $PHP artisan route:cache
+          $PHP artisan view:cache
+          $PHP artisan event:cache
+
+          if grep -qs 'dotfiles/public' "$DOCROOT/index.php"; then
+            for target in build images img css js favicon.ico favicon-16x16.png favicon-32x32.png apple-touch-icon.png robots.txt; do
+              [ -e "$DEPLOY_PATH/public/$target" ] && ln -sfn "dotfiles/public/${target}" "$DOCROOT/${target}"
+            done
+          fi
+
+          $PHP artisan up
+          echo "== Deployed: $(git rev-parse --short HEAD)"
+          DEPLOY
+
+      - name: Health check
+        run: |
+          sleep 3
+          body="$(mktemp)"
+          code=$(curl -s -o "$body" -w '%{http_code}' --max-time 20 https://files.infodot.co.za/up)
+          echo "GET /up -> $code"
+          if [ "$code" != "200" ] || grep -qiE 'exception|stack trace' "$body"; then
+            echo "::error::/up is not a clean 200 after deploy. The site may be in maintenance mode or the release is unhealthy -- inspect with server-logs.yml, then re-run or revert."
+            exit 1
+          fi
+
+      - name: Failure notice
+        if: failure()
+        run: |
+          echo '::error::Deploy failed. If it failed during or after migrations, the site may have been left in maintenance mode intentionally -- inspect the server before running `php artisan up`.'
