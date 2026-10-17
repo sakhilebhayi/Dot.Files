@@ -59,6 +59,20 @@ jobs:
           $PHP artisan down --retry=30 || true
 
           git reset --hard origin/main
+
+          # Production invariant (ecosystem audit 2026-10-17, defect D9): with
+          # APP_DEBUG=true any error, even a harmless 405, answers every
+          # visitor with a ~840 KB debug page (source, stack frames, server
+          # paths). Force it off on every deploy, BEFORE the config cache is
+          # built, so a hand-edited .env cannot quietly put it back.
+          if [ -f .env ]; then
+            if grep -q '^APP_DEBUG=' .env; then
+              sed -i 's/^APP_DEBUG=.*/APP_DEBUG=false/' .env
+            else
+              printf '\nAPP_DEBUG=false\n' >> .env
+            fi
+            echo "== APP_DEBUG forced to false: $(grep '^APP_DEBUG=' .env | tail -1)"
+          fi
           composer install --no-interaction --optimize-autoloader --no-dev
 
           # Built frontend assets are COMMITTED in public/build -- no npm.
@@ -88,6 +102,13 @@ jobs:
           body="$(mktemp)"
           code=$(curl -s -o "$body" -w '%{http_code}' --max-time 20 https://files.infodot.co.za/up)
           echo "GET /up -> $code"
+          # No debug page: POST to a GET-only route is a harmless 405.
+          pbody="$(mktemp)"
+          curl -s --max-time 20 -o "$pbody" -X POST https://files.infodot.co.za/up || true
+          if grep -qiE 'vendor/laravel|stack trace' "$pbody"; then
+            echo "::error::POST /up answered with a debug error page ($(wc -c < "$pbody" | tr -d ' ') bytes): APP_DEBUG is still on."
+            exit 1
+          fi
           if [ "$code" != "200" ] || grep -qiE 'exception|stack trace' "$body"; then
             echo "::error::/up is not a clean 200 after deploy. The site may be in maintenance mode or the release is unhealthy -- inspect with server-logs.yml, then re-run or revert."
             exit 1
