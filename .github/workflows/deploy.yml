@@ -86,13 +86,31 @@ jobs:
           $PHP artisan view:cache
           $PHP artisan event:cache
 
-          if grep -qs 'dotfiles/public' "$DOCROOT/index.php"; then
+          APP_DIR="$(basename "$DEPLOY_PATH")"
+          if [ "$DOCROOT" != "$DEPLOY_PATH" ] && grep -qs "$APP_DIR/vendor/autoload.php" "$DOCROOT/index.php"; then
             for target in build images img css js favicon.ico favicon-16x16.png favicon-32x32.png apple-touch-icon.png robots.txt; do
-              [ -e "$DEPLOY_PATH/public/$target" ] && ln -sfn "dotfiles/public/${target}" "$DOCROOT/${target}"
+              [ -e "$DEPLOY_PATH/public/$target" ] || continue
+              # A real file or folder already there (old hand-copied assets) is left alone:
+              # ln would put the link INSIDE a folder instead of replacing it.
+              if [ -e "$DOCROOT/$target" ] && [ ! -L "$DOCROOT/$target" ]; then
+                echo "== docroot/$target is a real file or folder; left alone"; continue
+              fi
+              ln -sfn "$APP_DIR/public/$target" "$DOCROOT/$target"
             done
+            echo "== Docroot asset links refreshed in $DOCROOT"
           fi
 
           $PHP artisan up
+
+          # The page is unusable without its stylesheet and script: check the built
+          # assets are really served from the public folder, not only that /up is 200.
+          for asset in $($PHP -r '$m = json_decode(file_get_contents("public/build/manifest.json"), true); foreach ($m as $e) { if (! empty($e["isEntry"])) { echo $e["file"], "\n"; } }'); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://files.infodot.co.za/build/$asset" || true)
+            if [ "$code" != "200" ]; then
+              echo "::error::/build/$asset answered ${code:-no response} (expected 200): the docroot is not serving the built assets."; exit 1
+            fi
+            echo "== asset ok: /build/$asset"
+          done
           echo "== Deployed: $(git rev-parse --short HEAD)"
           DEPLOY
 

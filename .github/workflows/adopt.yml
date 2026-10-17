@@ -126,10 +126,18 @@ jobs:
           $PHP artisan event:cache
 
           # Docroot asset links, only where the shim layout is in use.
-          if grep -qs 'dotfiles/public' "$DOCROOT/index.php"; then
+          APP_DIR="$(basename "$APP")"
+          if [ "$DOCROOT" != "$APP" ] && grep -qs "$APP_DIR/vendor/autoload.php" "$DOCROOT/index.php"; then
             for target in build images img css js favicon.ico favicon-16x16.png favicon-32x32.png apple-touch-icon.png robots.txt; do
-              [ -e "$APP/public/$target" ] && ln -sfn "dotfiles/public/${target}" "$DOCROOT/${target}"
+              [ -e "$APP/public/$target" ] || continue
+              # A real file or folder already there (old hand-copied assets) is left alone:
+              # ln would put the link INSIDE a folder instead of replacing it.
+              if [ -e "$DOCROOT/$target" ] && [ ! -L "$DOCROOT/$target" ]; then
+                echo "== docroot/$target is a real file or folder; left alone"; continue
+              fi
+              ln -sfn "$APP_DIR/public/$target" "$DOCROOT/$target"
             done
+            echo "== Docroot asset links refreshed in $DOCROOT"
             echo "== Docroot asset links refreshed in $DOCROOT"
           else
             echo "== Docroot is not the shim layout; asset links left alone"
