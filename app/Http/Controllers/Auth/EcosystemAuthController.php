@@ -43,6 +43,14 @@ class EcosystemAuthController extends Controller
 
         Auth::login($user);
 
+        // A deep link from InfoDot names the object to open. Only our own /o/{uuid} shape is
+        // honoured, so this can never be turned into an open redirect.
+        $redirect = $request->query('redirect');
+
+        if (is_string($redirect) && preg_match('#^/o/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$#i', $redirect)) {
+            return redirect($redirect);
+        }
+
         return redirect()->route('files');
     }
 

@@ -92,6 +92,9 @@
                                 <a href="{{ route('files.download', $child->objectable) }}" class="p-2 font-bold text-blue-600 flex-grow">
                                     {{ $child->objectable->name }}
                                 </a>
+                                @if ($child->objectable->infodot_reference)
+                                    <span class="ml-2 font-mono text-xs tracking-widest text-gray-500" title="InfoDot reference: paste it into InfoDot search to open this file">{{ $child->objectable->infodot_reference }}</span>
+                                @endif
                             @endif
 
                             @if ($child->objectable_type === 'folder')
