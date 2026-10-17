@@ -14,7 +14,8 @@ class DeleteTeam implements DeletesTeams
      */
     public function delete($team)
     {
-        $team->objects->each->delete();
+        // The team is the explicit argument; an operator approving this has another team.
+        $team->objects()->withoutGlobalScope('team')->get()->each->delete();
         $team->purge();
     }
 }

@@ -12,6 +12,8 @@ class FilePolicy
 
     public function download(User $user, File $file)
     {
-        return $user->currentTeam && $file->team_id === $user->currentTeam->id;
+        // The file's own team decides, not whichever team the session happens to
+        // have active: a member of two companies can open either company's files.
+        return $file->team_id !== null && $user->allTeams()->contains('id', $file->team_id);
     }
 }
