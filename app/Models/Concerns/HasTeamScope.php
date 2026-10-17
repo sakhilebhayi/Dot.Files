@@ -26,9 +26,21 @@ trait HasTeamScope
     protected static function bootHasTeamScope(): void
     {
         static::addGlobalScope('team', function (Builder $builder): void {
-            if (Auth::check() && Auth::user()->currentTeam) {
-                $builder->where($builder->getModel()->getTable().'.team_id', Auth::user()->currentTeam->id);
+            if (! Auth::check()) {
+                return; // jobs, console and the like have no person behind them
             }
+
+            $team = Auth::user()->currentTeam;
+
+            // A signed-in person with no active team sees nothing. Failing open here
+            // would show every team's rows to anyone without a current team.
+            if (! $team) {
+                $builder->whereRaw('1 = 0');
+
+                return;
+            }
+
+            $builder->where($builder->getModel()->getTable().'.team_id', $team->id);
         });
     }
 }

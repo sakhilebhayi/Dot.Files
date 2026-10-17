@@ -79,6 +79,7 @@ class FileBrowser extends Component
     {
         if (! empty($this->query)) {
             return Obj::search($this->query)
+                ->query(fn ($q) => $q->where('objects.team_id', $this->resolveCurrentTeam()?->id ?? 0))
                 ->get()
                 ->values()
                 ->load('objectable');
@@ -95,6 +96,10 @@ class FileBrowser extends Component
         if (! $obj) {
             return;
         }
+
+        // The id came from the browser. Whatever the global scope did, the object
+        // must belong to the company the person is acting for.
+        abort_unless($obj->team_id === $this->resolveCurrentTeam()?->id, 403);
 
         $obj->delete();
         $this->object = $this->object->fresh();

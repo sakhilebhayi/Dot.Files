@@ -127,8 +127,10 @@ class DeletionModerationTest extends TestCase
             ->post(route('operator.deletion-requests.bulk.approve', $request))
             ->assertRedirect();
 
-        $this->assertNull(Obj::find($toDelete->id));
-        $this->assertNotNull(Obj::find($toKeep->id));
+        // The operator has no team, so the team scope (correctly) hides everything from
+        // them; look at the rows without it.
+        $this->assertNull(Obj::withoutGlobalScope('team')->find($toDelete->id));
+        $this->assertNotNull(Obj::withoutGlobalScope('team')->find($toKeep->id));
         $this->assertSame('approved', $request->fresh()->status);
     }
 
@@ -149,7 +151,7 @@ class DeletionModerationTest extends TestCase
             ->post(route('operator.deletion-requests.bulk.approve', $request))
             ->assertRedirect();
 
-        $this->assertNull(Obj::find($stillThere->id));
+        $this->assertNull(Obj::withoutGlobalScope('team')->find($stillThere->id));
         $this->assertSame('approved', $request->fresh()->status);
     }
 
