@@ -1,0 +1,138 @@
+name: Adopt Production
+
+# One-time: bring the hand-deployed copy of Dot.Files at files.infodot.co.za
+# under this pipeline. The live tree was shipped from a Codespace with a
+# route cache compiled for /workspaces/Dot.Files, so GET /up answered 500
+# with the exception in the body (2026-10-16 audit, defect D1). This job:
+#   1. refuses to run unless a .env is already there (the app is live);
+#   2. tars the whole app directory (minus vendor/node_modules) next to the
+#      home directory as the rollback copy;
+#   3. turns the directory into a git checkout of origin/main WITHOUT
+#      deleting anything untracked (.env, storage/, database/, the Scout
+#      index) and prints every tracked file that differed on the host;
+#   4. installs dependencies and rebuilds every cache ON THE HOST, so the
+#      cached paths are the host's own;
+#      Pending migrations are LISTED, and run only when the `migrate` input
+#      says "migrate": nothing in this repo says which database production
+#      uses, and a SQLite file is inside the rollback tar but Postgres is not;
+#   5. checks /up from the runner and fails if it is not a clean 200.
+# Idempotent: a second run finds the checkout and behaves like deploy.yml.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "adopt" to confirm adopting the live files.infodot.co.za tree'
+        required: true
+      migrate:
+        description: 'Type "migrate" to ALSO run pending migrations. Leave empty to only list them (the rollback tar does not cover a Postgres database).'
+        required: false
+
+concurrency:
+  group: files-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  adopt:
+    name: Adopt files.infodot.co.za
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Refuse unconfirmed runs
+        if: ${{ github.event.inputs.confirm != 'adopt' }}
+        run: |
+          echo '::error::Confirmation input was not "adopt" -- aborting.'
+          exit 1
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Adopt
+        env:
+          MIGRATE_INPUT: ${{ github.event.inputs.migrate }}
+        run: |
+          # Only the exact word turns migrations on; anything else is "no".
+          if [ "$MIGRATE_INPUT" = "migrate" ]; then MIGRATE=yes; else MIGRATE=no; fi
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+              "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+              DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}" \
+              MIGRATE="$MIGRATE" \
+              'bash -s' <<'ADOPT'
+          set -euo pipefail
+          APP="$DEPLOY_PATH"
+          DOCROOT="$(dirname "$APP")"
+          PHP=php
+          cd "$APP"
+
+          echo "== PHP: $($PHP -v | head -1)"
+
+          if [ ! -f .env ]; then
+            echo "::error::$APP has no .env. This job adopts a LIVE install; a first install needs a bootstrap, not an adoption."; exit 1
+          fi
+
+          # 2. Rollback copy, outside the web root.
+          STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+          BACKUP="$HOME/dot-files-adopt-$STAMP.tgz"
+          tar czf "$BACKUP" --exclude=./vendor --exclude=./node_modules .
+          echo "== Rollback copy: $BACKUP ($(du -h "$BACKUP" | cut -f1))"
+
+          # 3. Become a checkout of origin/main, keeping everything untracked.
+          if [ ! -d .git ]; then
+            git init -q
+            git remote add origin https://github.com/sakhilebhayi/Dot.Files.git
+            git fetch -q origin main
+            git reset -q origin/main
+            echo "== Tracked files that differ on the host (replaced by main; copies are in the rollback tar):"
+            git status --short | grep -v '^??' || echo "   (none)"
+            git checkout -q -- .
+            git checkout -q -B main origin/main
+          else
+            git fetch -q origin main
+            git reset -q --hard origin/main
+          fi
+          echo "== Checkout: $(git rev-parse --short HEAD) ($(git status --short | grep -c '^??' || true) untracked file(s) kept)"
+
+          # 4. Dependencies and caches built HERE, never shipped from elsewhere.
+          composer install --no-interaction --optimize-autoloader --no-dev
+          $PHP artisan optimize:clear
+          echo "== Pending migrations (nothing runs unless migrate=migrate was given):"
+          $PHP artisan migrate:status --pending 2>&1 | tail -25 || true
+          if [ "$MIGRATE" = "yes" ]; then
+            $PHP artisan migrate --force
+          else
+            echo "== Migrations NOT run. Read the list above; deploy.yml runs them on the next release, or re-run this workflow with migrate=migrate."
+          fi
+          $PHP artisan config:cache
+          $PHP artisan route:cache
+          $PHP artisan view:cache
+          $PHP artisan event:cache
+
+          # Docroot asset links, only where the shim layout is in use.
+          if grep -qs 'dotfiles/public' "$DOCROOT/index.php"; then
+            for target in build images img css js favicon.ico favicon-16x16.png favicon-32x32.png apple-touch-icon.png robots.txt; do
+              [ -e "$APP/public/$target" ] && ln -sfn "dotfiles/public/${target}" "$DOCROOT/${target}"
+            done
+            echo "== Docroot asset links refreshed in $DOCROOT"
+          else
+            echo "== Docroot is not the shim layout; asset links left alone"
+          fi
+
+          $PHP artisan up || true
+          echo "== Adopted: $(git rev-parse --short HEAD)"
+          ADOPT
+
+      - name: Health check
+        run: |
+          sleep 3
+          body="$(mktemp)"
+          code=$(curl -s -o "$body" -w '%{http_code}' --max-time 20 https://files.infodot.co.za/up)
+          echo "GET /up -> $code"
+          if [ "$code" != "200" ] || grep -qiE 'exception|stack trace' "$body"; then
+            echo "::error::/up is not a clean 200 after adoption. Restore from the rollback tar printed above if the site is broken."
+            head -c 600 "$body"; echo
+            exit 1
+          fi

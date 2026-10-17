@@ -72,6 +72,22 @@ bash bin/test.sh   # Run tests
 
 ---
 
+## Deploying
+
+Production is `https://files.infodot.co.za`, one Laravel checkout on the shared Dot cPanel host, deployed only by the GitHub Actions workflows in `.github/workflows/` (the same pattern as Dot.Dopemine and Dot.Memory). Nothing is ever uploaded by hand: a cache compiled on another machine is exactly what broke `/up` before this pipeline existed.
+
+| Workflow | When | What it does |
+|---|---|---|
+| `adopt.yml` (`confirm=adopt`, optional `migrate=migrate`) | once | Tars the live tree as a rollback copy, turns it into a checkout of `main` without deleting anything untracked (`.env`, `storage/`, `database/`, the Scout index), rebuilds dependencies and caches on the host, lists pending migrations (runs them only with `migrate=migrate`), checks `/up`. |
+| `deploy.yml` (`confirm=deploy`) | every release | Maintenance mode, `git reset --hard origin/main`, `composer install`, migrate, rebuild caches, `/up` health gate. Never touches the shared crontab (Dot.Files schedules nothing). |
+| `server-logs.yml` | when diagnosing | Read-only tail of the newest Laravel log. Fixed command; never a remote shell. |
+
+Repository secrets (set once by the owner): `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`, `DEPLOY_PATH` (the checkout directory under the docroot, e.g. `~/files.infodot.co.za/dotfiles`).
+
+Rollback: redeploy a reverted `main`, or untar the `~/dot-files-adopt-<stamp>.tgz` copy that `adopt.yml` printed. A red deploy leaves the site in maintenance mode on purpose: inspect with `server-logs.yml`, then re-run.
+
+`storage/objects.index` is the TNTSearch (Scout) index. It is generated on the host and no longer tracked; if search comes up empty after adoption, run `php artisan scout:import "App\Models\Obj"` there once.
+
 ## Part of the Dot Ecosystem
 
 Dot.Files connects to [InfoDot](https://github.com/sakhileb/InfoDot) — the central hub. Log in to InfoDot once and navigate here without re-authenticating via \`/auth/ecosystem\`.
