@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\EcosystemAuthController;
 use App\Http\Controllers\DeletionModerationController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\FileOpenController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Laravel\Jetstream\Jetstream;
@@ -41,6 +42,8 @@ Route::get('/cookies', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/files', [FileController::class, 'index'])->name('files');
     Route::get('/files/{file}', [FileController::class, 'download'])->name('files.download');
+    // The destination of an InfoDot deep link: a file, by uuid. Re-authorised here.
+    Route::get('/o/{uuid}', FileOpenController::class)->name('files.open');
 });
 
 Route::middleware(['auth', 'verified', 'operator'])->prefix('operator')->name('operator.')->group(function () {

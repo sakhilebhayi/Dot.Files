@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasTeamScope;
+use App\Services\InfoDot\ResourceRegistry;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +14,11 @@ class File extends Model
     use HasFactory, HasTeamScope;
 
     protected $fillable = ['name', 'size', 'path', 'team_id'];
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class);
+    }
 
     public function sizeForHumans()
     {
@@ -33,8 +39,19 @@ class File extends Model
             $model->uuid = Str::uuid();
         });
 
+        // A new file in a linked company gets a pointer in InfoDot. After the response, so an
+        // upload never waits for (or fails because of) InfoDot.
+        static::created(function ($model) {
+            dispatch(fn () => app(ResourceRegistry::class)->register($model))->afterResponse();
+        });
+
         static::deleting(function ($model) {
             Storage::disk('local')->delete($model->path);
+
+            if ($model->infodot_resource_uuid !== null) {
+                $uuid = (string) $model->uuid;
+                dispatch(fn () => app(ResourceRegistry::class)->remove($uuid))->afterResponse();
+            }
         });
     }
 }
