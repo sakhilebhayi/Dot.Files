@@ -78,7 +78,7 @@ Production is `https://files.infodot.co.za`, one Laravel checkout on the shared 
 
 | Workflow | When | What it does |
 |---|---|---|
-| `adopt.yml` (`confirm=adopt`) | once | Tars the live tree as a rollback copy, turns it into a checkout of `main` without deleting anything untracked (`.env`, `storage/`, `database/`, the Scout index), rebuilds dependencies and caches on the host, checks `/up`. |
+| `adopt.yml` (`confirm=adopt`, optional `migrate=migrate`) | once | Tars the live tree as a rollback copy, turns it into a checkout of `main` without deleting anything untracked (`.env`, `storage/`, `database/`, the Scout index), rebuilds dependencies and caches on the host, lists pending migrations (runs them only with `migrate=migrate`), checks `/up`. |
 | `deploy.yml` (`confirm=deploy`) | every release | Maintenance mode, `git reset --hard origin/main`, `composer install`, migrate, rebuild caches, `/up` health gate. Never touches the shared crontab (Dot.Files schedules nothing). |
 | `server-logs.yml` | when diagnosing | Read-only tail of the newest Laravel log. Fixed command; never a remote shell. |
 

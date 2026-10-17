@@ -12,6 +12,9 @@ name: Adopt Production
 #      index) and prints every tracked file that differed on the host;
 #   4. installs dependencies and rebuilds every cache ON THE HOST, so the
 #      cached paths are the host's own;
+#      Pending migrations are LISTED, and run only when the `migrate` input
+#      says "migrate": nothing in this repo says which database production
+#      uses, and a SQLite file is inside the rollback tar but Postgres is not;
 #   5. checks /up from the runner and fails if it is not a clean 200.
 # Idempotent: a second run finds the checkout and behaves like deploy.yml.
 on:
@@ -20,6 +23,9 @@ on:
       confirm:
         description: 'Type "adopt" to confirm adopting the live files.infodot.co.za tree'
         required: true
+      migrate:
+        description: 'Type "migrate" to ALSO run pending migrations. Leave empty to only list them (the rollback tar does not cover a Postgres database).'
+        required: false
 
 concurrency:
   group: files-production-deploy
@@ -46,10 +52,15 @@ jobs:
           printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
 
       - name: Adopt
+        env:
+          MIGRATE_INPUT: ${{ github.event.inputs.migrate }}
         run: |
+          # Only the exact word turns migrations on; anything else is "no".
+          if [ "$MIGRATE_INPUT" = "migrate" ]; then MIGRATE=yes; else MIGRATE=no; fi
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
               "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
               DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}" \
+              MIGRATE="$MIGRATE" \
               'bash -s' <<'ADOPT'
           set -euo pipefail
           APP="$DEPLOY_PATH"
@@ -88,7 +99,13 @@ jobs:
           # 4. Dependencies and caches built HERE, never shipped from elsewhere.
           composer install --no-interaction --optimize-autoloader --no-dev
           $PHP artisan optimize:clear
-          $PHP artisan migrate --force
+          echo "== Pending migrations (nothing runs unless migrate=migrate was given):"
+          $PHP artisan migrate:status --pending 2>&1 | tail -25 || true
+          if [ "$MIGRATE" = "yes" ]; then
+            $PHP artisan migrate --force
+          else
+            echo "== Migrations NOT run. Read the list above; deploy.yml runs them on the next release, or re-run this workflow with migrate=migrate."
+          fi
           $PHP artisan config:cache
           $PHP artisan route:cache
           $PHP artisan view:cache
