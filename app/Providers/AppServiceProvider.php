@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Http\Livewire\FileBrowser;
+use App\Http\Livewire\FileShares;
 use App\Http\Livewire\NavigationDropdown;
 use App\Models\File;
 use App\Models\Folder;
@@ -55,6 +56,7 @@ class AppServiceProvider extends ServiceProvider
         // App\Http\Livewire to App\Livewire. Register our components
         // explicitly so they are found regardless of auto-discovery path.
         Livewire::component('file-browser', FileBrowser::class);
+        Livewire::component('file-shares', FileShares::class);
         Livewire::component('navigation-dropdown', NavigationDropdown::class);
 
         RateLimiter::for('api', function (Request $request) {

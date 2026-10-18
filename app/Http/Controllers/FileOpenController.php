@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\File;
 use App\Models\Obj;
 use App\Models\Team;
+use App\Services\FileShareService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -17,7 +18,7 @@ use Illuminate\Support\Str;
  */
 class FileOpenController extends Controller
 {
-    public function __invoke(Request $request, string $uuid)
+    public function __invoke(Request $request, string $uuid, FileShareService $shares)
     {
         abort_unless(Str::isUuid($uuid), 404);
 
@@ -28,7 +29,18 @@ class FileOpenController extends Controller
         $user = $request->user();
 
         if (! $user->allTeams()->contains('id', $file->team_id)) {
-            return response()->view('files.request-access', [], 403);
+            // Outside the company: the only way in is a live share made out to this person's verified email.
+            $share = $shares->activeShareFor($user, $file);
+
+            if ($share === null) {
+                $shares->denied($file, $user);
+
+                return response()->view('files.request-access', [], 403);
+            }
+
+            $shares->opened($user, $share);
+
+            return view('files.shared', ['file' => $file, 'share' => $share]);
         }
 
         if ($user->current_team_id !== $file->team_id) {

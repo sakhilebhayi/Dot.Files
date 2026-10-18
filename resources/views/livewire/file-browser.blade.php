@@ -79,6 +79,7 @@
         				<td></td>
         			</tr>
         		@endif
+                @php($canShare = $this->currentTeam && ! $this->currentTeam->personal_team && (auth()->user()->ownsTeam($this->currentTeam) || auth()->user()->hasTeamRole($this->currentTeam, 'admin')))
                 @foreach ($this->results as $child)
 	                <tr class="border-gray-100 @if (!$loop->last) border-b-2 @endif hover:bg-gray-100 ">
 	                    <td class="py-2 px-3">
@@ -134,6 +135,11 @@
 	                    <td class="py-2 px-3">
 	                        <div class="flex justify-end items-center">
 	                            <ul class="flex items-center">
+	                                @if ($child->objectable_type === 'file' && $canShare)
+	                                <li class="mr-4">
+	                                    <a class="text-gray-400 font-bold" href="{{ route('files.share', $child->objectable) }}">Share</a>
+	                                </li>
+	                                @endif
 	                                <li class="mr-4">
 	                                    <button class="text-gray-400 font-bold"
 	                                    wire:click="$set('renamingObject', {{ $child->id }})">
