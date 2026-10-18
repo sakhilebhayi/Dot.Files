@@ -87,8 +87,8 @@ class InfoDotDeepLinkTest extends TestCase
             return $request->url() === 'https://infodot.test/api/ecosystem/resources'
                 && $request->hasHeader('Authorization', 'Bearer files-secret')
                 && $body['team_uuid'] === $this->acme->infodot_team_uuid
-                && $body['object_uuid'] === $file->uuid
-                && $body['path'] === '/o/'.$file->uuid
+                && $body['object_uuid'] === (string) $file->uuid
+                && $body['path'] === '/o/'.(string) $file->uuid
                 && ! array_key_exists('name', $body) && ! str_contains(json_encode($body), 'payroll');
         });
         $this->assertSame('ACME-F-000001', $file->fresh()->infodot_reference);
