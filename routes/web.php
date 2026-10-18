@@ -4,6 +4,9 @@ use App\Http\Controllers\Auth\EcosystemAuthController;
 use App\Http\Controllers\DeletionModerationController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\FileOpenController;
+use App\Http\Controllers\SharedFileController;
+use App\Models\File;
+use App\Services\FileShareService;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Laravel\Jetstream\Jetstream;
@@ -44,6 +47,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/files/{file}', [FileController::class, 'download'])->name('files.download');
     // The destination of an InfoDot deep link: a file, by uuid. Re-authorised here.
     Route::get('/o/{uuid}', FileOpenController::class)->name('files.open');
+
+    // Cross-company sharing: the company side manages a file's shares; the other side sees what
+    // was shared with them. Every request re-checks the share against the verified email.
+    Route::get('/files/{file}/share', function (File $file) {
+        abort_unless(app(FileShareService::class)->canShare(auth()->user(), $file), 403);
+
+        return view('files.share', ['file' => $file]);
+    })->name('files.share');
+    Route::get('/shared', [SharedFileController::class, 'index'])->name('shared');
+    Route::get('/shared/{share}/download', [SharedFileController::class, 'download'])->name('shared.download');
 });
 
 Route::middleware(['auth', 'verified', 'operator'])->prefix('operator')->name('operator.')->group(function () {

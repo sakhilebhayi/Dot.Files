@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasTeamScope;
+use App\Services\FileShareService;
 use App\Services\InfoDot\ResourceRegistry;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -50,6 +51,9 @@ class File extends Model
 
         static::deleting(function ($model) {
             Storage::disk('local')->delete($model->path);
+
+            // Anyone it was shared with loses access now, and the audit trail says why.
+            app(FileShareService::class)->revokeMany(FileShare::where('file_id', $model->id)->active()->get(), 'file deleted');
 
             if ($model->infodot_resource_uuid !== null) {
                 $uuid = (string) $model->uuid;

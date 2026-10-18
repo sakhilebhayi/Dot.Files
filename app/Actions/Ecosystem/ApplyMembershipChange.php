@@ -2,8 +2,10 @@
 
 namespace App\Actions\Ecosystem;
 
+use App\Models\FileShare;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\FileShareService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Laravel\Jetstream\Jetstream;
@@ -63,6 +65,7 @@ class ApplyMembershipChange
         }
 
         $team->users()->detach($user->id);
+        $this->revokeSharesBy($team, $user, 'sharer left the company');
 
         if ($user->current_team_id === $team->id) {
             $user->forceFill(['current_team_id' => null])->save();
@@ -75,7 +78,13 @@ class ApplyMembershipChange
             return;
         }
 
-        $team->users()->updateExistingPivot($user->id, ['role' => $this->localRole($infodotRole)]);
+        $localRole = $this->localRole($infodotRole);
+        $team->users()->updateExistingPivot($user->id, ['role' => $localRole]);
+
+        // Only owners and administrators may share, so someone who no longer is takes their shares with them.
+        if ($localRole !== 'admin') {
+            $this->revokeSharesBy($team, $user, 'sharer is no longer an administrator');
+        }
     }
 
     private function unlink(Team $team): void
@@ -86,7 +95,25 @@ class ApplyMembershipChange
             }
         }
 
+        $this->revokeAllShares($team, 'company deleted');
+
         $team->forceFill(['infodot_team_uuid' => null])->save();
+    }
+
+    private function revokeSharesBy(Team $team, User $user, string $note): void
+    {
+        app(FileShareService::class)->revokeMany(
+            FileShare::active()->where('created_by', $user->id)->whereIn('file_id', $team->files()->withoutGlobalScopes()->select('files.id'))->get(),
+            $note
+        );
+    }
+
+    private function revokeAllShares(Team $team, string $note): void
+    {
+        app(FileShareService::class)->revokeMany(
+            FileShare::active()->whereIn('file_id', $team->files()->withoutGlobalScopes()->select('files.id'))->get(),
+            $note
+        );
     }
 
     private function localRole(string $infodotRole): string
