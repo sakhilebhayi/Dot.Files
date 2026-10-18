@@ -3,6 +3,7 @@
 namespace App\Services\InfoDot;
 
 use App\Models\File;
+use App\Models\Team;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -22,7 +23,18 @@ class ResourceRegistry
 
     public function register(File $file): bool
     {
-        $team = $file->team()->withoutGlobalScopes()->first();
+        return $this->registerPointer((string) $file->uuid, $file->team_id);
+    }
+
+    /**
+     * Register by identifiers rather than by model. The model hook queues this to run after
+     * the response, and a queued closure that holds a model is serialised and re-read from the
+     * database first, through the team scope of whoever is signed in by then: a needless query
+     * that silently drops the registration if the person's current team has changed meanwhile.
+     */
+    public function registerPointer(string $fileUuid, ?int $teamId): bool
+    {
+        $team = $teamId !== null ? Team::withoutGlobalScopes()->find($teamId) : null;
 
         // Personal teams are not companies: nothing to register against.
         if (! $this->enabled() || ! $team || $team->personal_team || blank($team->infodot_team_uuid)) {
@@ -37,8 +49,8 @@ class ResourceRegistry
                     'platform' => (string) config('ecosystem.infodot.platform'),
                     'team_uuid' => $team->infodot_team_uuid,
                     'type' => 'file',
-                    'object_uuid' => $file->uuid,
-                    'path' => '/o/'.$file->uuid,
+                    'object_uuid' => $fileUuid,
+                    'path' => '/o/'.$fileUuid,
                 ]);
         } catch (Throwable $e) {
             Log::warning('InfoDot resource registration failed.', ['error' => class_basename($e)]);
@@ -52,10 +64,10 @@ class ResourceRegistry
             return false;
         }
 
-        $file->forceFill([
+        File::withoutGlobalScopes()->where('uuid', $fileUuid)->toBase()->update([
             'infodot_reference' => $response->json('reference'),
             'infodot_resource_uuid' => $response->json('uuid'),
-        ])->saveQuietly();
+        ]);
 
         return true;
     }

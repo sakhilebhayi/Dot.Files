@@ -42,7 +42,10 @@ class File extends Model
         // A new file in a linked company gets a pointer in InfoDot. After the response, so an
         // upload never waits for (or fails because of) InfoDot.
         static::created(function ($model) {
-            dispatch(fn () => app(ResourceRegistry::class)->register($model))->afterResponse();
+            $uuid = (string) $model->uuid;
+            $teamId = $model->team_id;
+
+            dispatch(fn () => app(ResourceRegistry::class)->registerPointer($uuid, $teamId))->afterResponse();
         });
 
         static::deleting(function ($model) {
