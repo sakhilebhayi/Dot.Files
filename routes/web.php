@@ -31,7 +31,7 @@ Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function () {
 })->name('dashboard');
 
 Route::match(['get', 'post'], '/auth/ecosystem', [EcosystemAuthController::class, 'handle'])
-    ->withoutMiddleware(['Illuminate\Foundation\Http\Middleware\VerifyCsrfToken', 'Illuminate\Foundation\Http\Middleware\ValidateCsrfToken'])->name('auth.ecosystem');
+    ->withoutMiddleware(['Illuminate\Foundation\Http\Middleware\PreventRequestForgery', 'Illuminate\Foundation\Http\Middleware\VerifyCsrfToken', 'Illuminate\Foundation\Http\Middleware\ValidateCsrfToken'])->name('auth.ecosystem');
 
 // Cookie Policy — Jetstream's termsAndPrivacyPolicy feature covers terms.show/policy.show
 // natively (registered at /terms-of-service and /privacy-policy, reading resources/markdown/
