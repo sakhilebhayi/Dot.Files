@@ -22,6 +22,20 @@ class InfoDotDeepLinkTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** InfoDot's launch page, as the browser reports it. */
+    private function fromInfodot(): array
+    {
+        $infodot = parse_url((string) config('ecosystem.infodot.redeem_url', ''), PHP_URL_HOST);
+
+        if (is_string($infodot) && $infodot !== '') {
+            return ['Origin' => 'https://'.$infodot];
+        }
+
+        $host = (string) parse_url((string) config('app.url'), PHP_URL_HOST);
+
+        return ['Origin' => 'https://'.(str_contains($host, '.') ? substr($host, strpos($host, '.') + 1) : $host)];
+    }
+
     private User $ann;
 
     private User $gina;
@@ -164,7 +178,7 @@ class InfoDotDeepLinkTest extends TestCase
         $go = function (string $redirect) use ($identity) {
             $this->swap(HttpFactory::class, new HttpFactory);
             Http::fake(['infodot.test/*' => Http::response($identity())]);
-            $response = $this->get('/auth/ecosystem?token=one-time&redirect='.rawurlencode($redirect));
+            $response = $this->post(route('auth.ecosystem'), ['token' => 'one-time', 'redirect' => $redirect], $this->fromInfodot());
             auth()->logout();
 
             return $response;
