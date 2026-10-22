@@ -115,7 +115,8 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Accounts are created by InfoDot at first sign-in; public sign-up is closed unless ALLOW_REGISTRATION=true.
+        ...(env('ALLOW_REGISTRATION', false) ? [Features::registration()] : []),
         Features::resetPasswords(),
         // Features::emailVerification(),
         Features::updateProfileInformation(),
