@@ -30,8 +30,12 @@ Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function () {
     return view('dashboard');
 })->name('dashboard');
 
-Route::match(['get', 'post'], '/auth/ecosystem', [EcosystemAuthController::class, 'handle'])
+Route::post('/auth/ecosystem', [EcosystemAuthController::class, 'handle'])
     ->withoutMiddleware(['Illuminate\Foundation\Http\Middleware\PreventRequestForgery', 'Illuminate\Foundation\Http\Middleware\VerifyCsrfToken', 'Illuminate\Foundation\Http\Middleware\ValidateCsrfToken'])->name('auth.ecosystem');
+
+// Links minted before the token moved into a POST body carried it in the URL. They are no longer honoured:
+// the visitor is sent to the normal sign-in page and the token in the URL is never read.
+Route::get('/auth/ecosystem', [EcosystemAuthController::class, 'legacy']);
 
 // Cookie Policy — Jetstream's termsAndPrivacyPolicy feature covers terms.show/policy.show
 // natively (registered at /terms-of-service and /privacy-policy, reading resources/markdown/
