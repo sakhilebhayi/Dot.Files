@@ -17,5 +17,8 @@
         "laravel-echo": "^2.1.0",
         "lodash": "^4.17.21",
         "pusher-js": "^8.4.0"
+    },
+    "overrides": {
+        "postcss-selector-parser": "^7.1.6"
     }
 }
