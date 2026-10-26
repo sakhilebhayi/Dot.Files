@@ -36,6 +36,9 @@
                             <div class="mt-1 border border-gray-200 rounded-lg cursor-pointer">
                                 @foreach ($this->roles as $index => $role)
                                         <div class="px-4 py-3 {{ $index > 0 ? 'border-t border-gray-200' : '' }}"
+                                                        role="button" tabindex="0"
+                                                        wire:keydown.enter="$set('addTeamMemberForm.role', '{{ $role->key }}')"
+                                                        wire:keydown.space.prevent="$set('addTeamMemberForm.role', '{{ $role->key }}')"
                                                         wire:click="$set('addTeamMemberForm.role', '{{ $role->key }}')">
                                             <div class="{{ isset($addTeamMemberForm['role']) && $addTeamMemberForm['role'] !== $role->key ? 'opacity-50' : '' }}">
                                                 <!-- Role Name -->
@@ -141,6 +144,9 @@
                 <div class="mt-1 border border-gray-200 rounded-lg cursor-pointer">
                     @foreach ($this->roles as $index => $role)
                         <div class="px-4 py-3 {{ $index > 0 ? 'border-t border-gray-200' : '' }}"
+                                        role="button" tabindex="0"
+                                        wire:keydown.enter="$set('currentRole', '{{ $role->key }}')"
+                                        wire:keydown.space.prevent="$set('currentRole', '{{ $role->key }}')"
                                         wire:click="$set('currentRole', '{{ $role->key }}')">
                             <div class="{{ $currentRole !== $role->key ? 'opacity-50' : '' }}">
                                 <!-- Role Name -->

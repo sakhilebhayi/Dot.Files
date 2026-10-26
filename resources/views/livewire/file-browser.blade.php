@@ -1,7 +1,7 @@
 <div>
     <div class="flex flex-wrap items-center justify-between mb-4">
         <div class="flex-grow md:mr-3 mt-4 md:mt-0 w-full md:w-auto order-3 md:order-1">
-            <input type="search" placeholder="Search files and folders" class="w-full px-3 h-12 border-2 rounded-lg" wire:model.live.debounce.300ms="query">
+            <input aria-label="Search files and folders" type="search" placeholder="Search files and folders" class="w-full px-3 h-12 border-2 rounded-lg" wire:model.live.debounce.300ms="query">
         </div>
         <div class="order-2">
             <div>
@@ -65,7 +65,7 @@
         				<td></td>
         				<td class="px-3">
         					<form class="flex items-center" wire:submit.prevent="createFolder">
-        						<input type="text" name="" id="" class="w-full px-3 h-10 border-2 border-gray-200 rounded-lg mr-2" wire:model="newFolderState.name">
+        						<input aria-label="Newfolderstate name" type="text" name="" id="" class="w-full px-3 h-10 border-2 border-gray-200 rounded-lg mr-2" wire:model="newFolderState.name">
         						<button type="submit" class="bg-blue-600 text-white px-6 h-10 rounded-lg mr-2" >
         							Create
         						</button>
@@ -83,7 +83,7 @@
                 @foreach ($this->results as $child)
 	                <tr class="border-gray-100 @if (!$loop->last) border-b-2 @endif hover:bg-gray-100 ">
 	                    <td class="py-2 px-3">
-	                        <input type="checkbox" wire:model="selectedObjects" value="{{ $child->id }}">
+	                        <input aria-label="Selectedobjects" type="checkbox" wire:model="selectedObjects" value="{{ $child->id }}">
 	                    </td>
 	                    <td class="py-2 px-3 flex items-center">
                             @if ($child->objectable_type === 'file')
@@ -109,7 +109,7 @@
 
 	                    	@if ($renamingObject === $child->id)
 	                    		<form class="flex items-center ml-2 flex-grow" wire:submit.prevent="renameObject">
-	                    			<input type="text" name="" id="" class="w-full px-3 h-10 border-2 border-gray-200 rounded-lg mr-2" wire:model="renamingObjectState.name">
+	                    			<input aria-label="Renamingobjectstate name" type="text" name="" id="" class="w-full px-3 h-10 border-2 border-gray-200 rounded-lg mr-2" wire:model="renamingObjectState.name">
 	                    			<button type="submit" class="bg-blue-600 text-white px-6 h-10 rounded-lg mr-2">
 	                    				Rename
 	                    			</button>
