@@ -27,7 +27,7 @@
                             </form>
                             <form method="POST" action="{{ route('operator.deletion-requests.team.reject', $request) }}" class="flex items-center gap-2">
                                 @csrf
-                                <input type="text" name="reason" placeholder="Reason for rejecting" required class="border rounded-lg px-2 py-1 text-sm">
+                                <input aria-label="Reason for rejecting" type="text" name="reason" placeholder="Reason for rejecting" required class="border rounded-lg px-2 py-1 text-sm">
                                 <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold">Reject</button>
                             </form>
                         </div>
@@ -50,7 +50,7 @@
                             </form>
                             <form method="POST" action="{{ route('operator.deletion-requests.bulk.reject', $request) }}" class="flex items-center gap-2">
                                 @csrf
-                                <input type="text" name="reason" placeholder="Reason for rejecting" required class="border rounded-lg px-2 py-1 text-sm">
+                                <input aria-label="Reason for rejecting" type="text" name="reason" placeholder="Reason for rejecting" required class="border rounded-lg px-2 py-1 text-sm">
                                 <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold">Reject</button>
                             </form>
                         </div>
