@@ -31,7 +31,7 @@
             <div class="mt-5" x-data="{ copied: false }">
                 <p class="text-sm font-medium text-gray-700">{{ __('Link to send them') }}</p>
                 <div class="mt-1 flex items-center gap-2">
-                    <input type="text" readonly value="{{ $link }}" class="block w-full max-w-xl rounded-md border-gray-300 bg-gray-50 text-sm" onfocus="this.select()">
+                    <input type="text" aria-label="{{ __('Link to send them') }}" readonly value="{{ $link }}" class="block w-full max-w-xl rounded-md border-gray-300 bg-gray-50 text-sm" onfocus="this.select()">
                     <button type="button" class="px-3 py-2 border border-gray-300 rounded-md text-xs font-semibold uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                             @click="navigator.clipboard.writeText('{{ $link }}').then(() => { copied = true; setTimeout(() => copied = false, 1800) })"
                             x-text="copied ? 'Copied' : 'Copy'">Copy</button>
