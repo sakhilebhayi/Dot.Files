@@ -78,6 +78,13 @@ jobs:
           CURRENT_DOCROOT="$(uapi --output=json DomainInfo single_domain_data domain=files.infodot.co.za 2>/dev/null | sed -n 's/.*"documentroot" *: *"\([^"]*\)".*/\1/p' | head -1)"
           if [ -n "$APP_REAL" ] && { [ "$CURRENT_DOCROOT" = "$APP_REAL/public" ] || [ -f "$DEPLOY_PATH/.docroot-is-public" ]; }; then
             echo "== app-folder guard: skipped (the document root is $APP_REAL/public; the app folder is not served)"
+            # This repo TRACKS a root .htaccess written for a document root at the project root (it rewrites every
+            # request into public/). With the document root already public/, that file in the PARENT folder still
+            # runs, rewrites to public/public/... and every URL answers 404 (seen on the first Agents move,
+            # 2026-10-26). `git reset --hard` restores it on every deploy, so move it aside each time.
+            if [ -f "$GUARD_HT" ]; then
+              if mv -f "$GUARD_HT" "$GUARD_HT.docroot-is-public-disabled"; then echo "== app-folder .htaccess: moved aside (the document root is public/)"; else echo "::warning::could not move $GUARD_HT aside (deploy continues)"; fi
+            fi
           elif [ -z "$GUARD_PARENT" ] || [ "$GUARD_PARENT" = "$(cd "${HOME:-/nonexistent}" 2>/dev/null && pwd -P)" ]; then
             echo "== app-folder guard: skipped (the app folder is not inside a docroot; a deny file there would block the whole site)"
           elif [ -f "$GUARD_HT" ] && grep -q 'Require all denied' "$GUARD_HT"; then
