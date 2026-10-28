@@ -9,11 +9,8 @@ use App\Models\File;
 use App\Models\Folder;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\Compilers\BladeCompiler;
@@ -28,10 +25,6 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot()
     {
-        // /up answered 200 whenever PHP booted, even with the database down. The framework dispatches DiagnosingHealth
-        // before it renders the page: a failing query turns the answer into a 500 (the exception text is never shown).
-        Event::listen(DiagnosingHealth::class, fn () => DB::select('select 1'));
-
         // Re-register Jetstream's x-jet-* Blade component aliases.
         // These were registered by Jetstream 1.x but removed in Jetstream 4+.
         // Our published views still use the x-jet-* prefix so we restore them here.
