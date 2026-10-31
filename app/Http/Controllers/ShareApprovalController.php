@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\File;
+use App\Models\FileFlag;
 use App\Models\FileShare;
 use App\Services\FileShareService;
 use Illuminate\Http\Request;
@@ -64,9 +65,16 @@ class ShareApprovalController extends Controller
                 return $row;
             });
 
+        // Governance flags (R-28 §29): unusual activity for owners and administrators to judge.
+        // Members never see flags — the question is about conduct, and it is the owners'.
+        $flags = $canDecide
+            ? FileFlag::with(['file', 'actor'])->open()->where('team_id', $team->id)->orderByDesc('created_at')->get()
+            : collect();
+
         return view('files.approvals', [
             'team' => $team,
             'canDecide' => $canDecide,
+            'flags' => $flags,
             'pending' => $pending,
             'active' => $active,
             'decided' => $decided,

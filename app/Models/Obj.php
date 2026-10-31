@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasTeamScope;
+use App\Services\FileGovernance;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -34,6 +35,13 @@ class Obj extends Model
     {
         $this->forceFill(['trashed_at' => now(), 'trashed_by' => $byUserId])->save();
         $this->unsearchable();
+
+        // A person trashing a file right after its content changed is the pattern governance
+        // reviews (R-28 §29). Platforms (null user) have their own audit trail.
+        if ($byUserId !== null && $this->objectable_type === 'file') {
+            $fileId = (int) $this->objectable_id;
+            dispatch(fn () => app(FileGovernance::class)->afterTrash($fileId, $byUserId))->afterResponse();
+        }
     }
 
     public function restore(): void
