@@ -15,11 +15,32 @@ class File extends Model
 {
     use HasFactory, HasTeamScope;
 
-    protected $fillable = ['name', 'size', 'path', 'team_id', 'mime'];
+    protected $fillable = ['name', 'size', 'path', 'team_id', 'mime', 'uploaded_by'];
 
     public function team()
     {
         return $this->belongsTo(Team::class);
+    }
+
+    /** The tree row this file hangs off (carries its place and its trash state). */
+    public function obj()
+    {
+        return $this->morphOne(Obj::class, 'objectable');
+    }
+
+    public function uploader()
+    {
+        return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    public function isTrashed(): bool
+    {
+        return $this->obj()->withoutGlobalScope('team')->whereNotNull('trashed_at')->exists();
+    }
+
+    public function isPinnedBy(User $user): bool
+    {
+        return FilePin::where('user_id', $user->id)->where('file_id', $this->id)->exists();
     }
 
     /**

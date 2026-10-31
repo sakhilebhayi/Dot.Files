@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\File;
+use App\Models\FilePin;
 use App\Models\Obj;
 use App\Models\Team;
 use Illuminate\Http\Request;
@@ -51,6 +52,40 @@ class FileController extends Controller
         $this->authorize('download', $file);
 
         return Storage::disk('local')->download($file->path, $file->name);
+    }
+
+    /**
+     * The document rendered in the browser (R-27): the blob streamed with an inline
+     * disposition, same policy as the download, and ONLY for formats the browser renders
+     * passively (PDF, raster images, plain text). Active content (HTML, SVG, anything
+     * scriptable) is never served inline — it stays a download, by design.
+     */
+    public function inline(File $file)
+    {
+        $this->authorize('download', $file);
+
+        $inlineable = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'text/plain', 'text/csv'];
+
+        abort_unless(in_array($file->mime, $inlineable, true), 404);
+        abort_unless(Storage::disk('local')->exists($file->path), 404);
+
+        return response()->file(Storage::disk('local')->path($file->path), [
+            'Content-Type' => $file->mime,
+            'Content-Disposition' => 'inline; filename="'.addslashes($file->name).'"',
+            'Cache-Control' => 'private, max-age=300',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    /** Pin or unpin this file for the signed-in person (R-27). A pin is a bookmark, not access. */
+    public function togglePin(Request $request, File $file)
+    {
+        $this->authorize('download', $file);
+
+        $pin = FilePin::where('user_id', $request->user()->id)->where('file_id', $file->id)->first();
+        $pin ? $pin->delete() : FilePin::create(['user_id' => $request->user()->id, 'file_id' => $file->id]);
+
+        return back()->with('status', $pin ? $file->name.' is no longer pinned.' : $file->name.' is pinned to the front of your room.');
     }
 
     /**

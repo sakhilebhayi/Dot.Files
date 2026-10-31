@@ -30,7 +30,8 @@ class SharedFileController extends Controller
         $user = $request->user();
         $file = $share->file;
 
-        abort_unless($file !== null && $service->activeShareFor($user, $file)?->is($share), 404);
+        // A trashed file is off the record for everyone outside the company (R-27).
+        abort_unless($file !== null && ! $file->isTrashed() && $service->activeShareFor($user, $file)?->is($share), 404);
 
         $service->opened($user, $share, 'downloaded');
 
@@ -45,7 +46,7 @@ class SharedFileController extends Controller
     {
         $file = $share->file;
 
-        abort_unless($file !== null && $service->activeShareFor($request->user(), $file)?->is($share), 404);
+        abort_unless($file !== null && ! $file->isTrashed() && $service->activeShareFor($request->user(), $file)?->is($share), 404);
         abort_unless($file->hasPreview() && Storage::disk('local')->exists($file->preview_path), 404);
 
         return response()->file(Storage::disk('local')->path($file->preview_path), [

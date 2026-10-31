@@ -20,6 +20,38 @@ class Obj extends Model
 
     protected $fillable = ['parent_id'];
 
+    protected $casts = ['trashed_at' => 'datetime'];
+
+    /** Days a trashed record waits before files:purge-trash removes it for real. */
+    public const TRASH_DAYS = 30;
+
+    /**
+     * R-27: a single-click delete parks the record here instead of destroying it. The row keeps
+     * its place in the tree (parent_id untouched), leaves the browse queries and the search
+     * index, and comes back exactly where it was on restore.
+     */
+    public function trash(?int $byUserId): void
+    {
+        $this->forceFill(['trashed_at' => now(), 'trashed_by' => $byUserId])->save();
+        $this->unsearchable();
+    }
+
+    public function restore(): void
+    {
+        $this->forceFill(['trashed_at' => null, 'trashed_by' => null])->save();
+        $this->searchable();
+    }
+
+    public function isTrashed(): bool
+    {
+        return $this->trashed_at !== null;
+    }
+
+    public function shouldBeSearchable(): bool
+    {
+        return $this->trashed_at === null;
+    }
+
     public static function booted()
     {
         static::creating(function ($model) {

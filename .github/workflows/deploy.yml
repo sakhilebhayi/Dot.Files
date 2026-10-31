@@ -3,8 +3,9 @@ name: Deploy to Production
 # Manual-only, mirroring the other Dot apps on this host: trigger from the
 # Actions tab (or `gh workflow run deploy.yml -f confirm=deploy`) when a
 # release is ready. Requires the DEPLOY_* repository secrets and a tree
-# already adopted by adopt.yml. Dot.Files has no scheduled commands, so
-# this deploy never touches the account's shared crontab.
+# already adopted by adopt.yml. Dot.Files' one scheduled command
+# (files:purge-trash, R-27) also runs opportunistically from the trash
+# page, so this deploy still never touches the account's shared crontab.
 on:
   workflow_dispatch:
     inputs:

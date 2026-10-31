@@ -4,9 +4,12 @@
     $canShare = $team && ! $team->personal_team && ($user->ownsTeam($team) || $user->hasTeamRole($team, 'admin'));
     $canRequest = $team && ! $team->personal_team && ! $canShare;
     $stats = $this->stats;
+    $pinnedIds = \App\Models\FilePin::where('user_id', $user->id)->pluck('file_id')->all();
 @endphp
 
-<div class="space-y-4">
+<div class="space-y-4"
+     @keydown.slash.window="if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) { $event.preventDefault(); document.getElementById('fx-search')?.focus() }"
+     @dragenter.window="if (Array.from($event.dataTransfer?.types ?? []).includes('Files')) $wire.showingObjectloadForm = true">
 
     {{-- The room head: this company's identity and its real tallies. --}}
     <section class="fx-roomhead" aria-label="{{ __('Company records summary') }}">
@@ -40,6 +43,23 @@
         @endif
     </section>
 
+    {{-- Pinned to the front: this person's own shortlist, shown while browsing the root. --}}
+    @if (! $this->query && $this->object->parent_id === null && $this->pins->isNotEmpty())
+        <section aria-label="{{ __('Pinned') }}" class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium" style="color: var(--ink-soft);">{{ __('Pinned') }}</span>
+            @foreach ($this->pins as $pin)
+                <span class="fx-panel inline-flex items-center gap-1.5 !rounded-md pl-2.5 pr-1 py-1">
+                    <x-fx.icon :name="$pin->kind()" class="w-4 h-4" style="color: var(--oxide);" />
+                    <a href="{{ route('files.open', $pin->uuid) }}" class="text-sm font-medium max-w-[14rem] truncate">{{ $pin->name }}</a>
+                    <button type="button" class="fx-btn fx-btn--quiet !min-h-[26px] !px-1" wire:click="togglePin({{ $pin->id }})"
+                            title="{{ __('Unpin') }}" aria-label="{{ __('Unpin') }} {{ $pin->name }}">
+                        <x-fx.icon name="x" class="w-3.5 h-3.5" />
+                    </button>
+                </span>
+            @endforeach
+        </section>
+    @endif
+
     {{-- Toolbar --}}
     <div class="flex flex-wrap items-center gap-2">
         <label class="relative flex-grow min-w-[14rem]">
@@ -47,8 +67,21 @@
             <span class="absolute left-3 top-1/2 -translate-y-1/2" style="color: var(--ink-faint);">
                 <x-fx.icon name="search" />
             </span>
-            <input type="search" placeholder="{{ __('Search this company’s records') }}"
+            <input id="fx-search" type="search" placeholder="{{ __('Search this company’s records — press /') }}"
                    class="fx-input pl-10" wire:model.live.debounce.300ms="query">
+        </label>
+
+        <label>
+            <span class="sr-only">{{ __('Show only') }}</span>
+            <select class="fx-select !w-auto" wire:model.live="kind">
+                <option value="all">{{ __('Everything') }}</option>
+                <option value="pdf">{{ __('PDFs') }}</option>
+                <option value="doc">{{ __('Documents') }}</option>
+                <option value="sheet">{{ __('Spreadsheets') }}</option>
+                <option value="image">{{ __('Images') }}</option>
+                <option value="media">{{ __('Media') }}</option>
+                <option value="archive">{{ __('Archives') }}</option>
+            </select>
         </label>
 
         <div class="flex items-center rounded-md border" style="border-color: var(--line-strong);" role="group" aria-label="{{ __('View') }}">
@@ -193,6 +226,9 @@
                                     @if ($child->objectable_type === 'file')
                                         <a href="{{ route('files.open', $child->objectable->uuid) }}" role="menuitem"><x-fx.icon name="open" /> {{ __('Open') }}</a>
                                         <a href="{{ route('files.download', $child->objectable) }}" role="menuitem"><x-fx.icon name="download" /> {{ __('Download') }}</a>
+                                        <button type="button" role="menuitem" wire:click="togglePin({{ $child->objectable->id }})" @click="m = false">
+                                            <x-fx.icon name="pin" /> {{ in_array($child->objectable->id, $pinnedIds) ? __('Unpin') : __('Pin to the front') }}
+                                        </button>
                                         @if ($canShare)
                                             <a href="{{ route('files.share', $child->objectable) }}" role="menuitem"><x-fx.icon name="share" /> {{ __('Share outside the company') }}</a>
                                         @elseif ($canRequest)
@@ -274,6 +310,9 @@
                                         @if ($child->objectable_type === 'file')
                                             <a href="{{ route('files.open', $child->objectable->uuid) }}" role="menuitem"><x-fx.icon name="open" /> {{ __('Open') }}</a>
                                             <a href="{{ route('files.download', $child->objectable) }}" role="menuitem"><x-fx.icon name="download" /> {{ __('Download') }}</a>
+                                            <button type="button" role="menuitem" wire:click="togglePin({{ $child->objectable->id }})" @click="m = false">
+                                                <x-fx.icon name="pin" /> {{ in_array($child->objectable->id, $pinnedIds) ? __('Unpin') : __('Pin to the front') }}
+                                            </button>
                                             @if ($canShare)
                                                 <a href="{{ route('files.share', $child->objectable) }}" role="menuitem"><x-fx.icon name="share" /> {{ __('Share outside the company') }}</a>
                                             @elseif ($canRequest)
@@ -330,6 +369,8 @@
                  x-data="{
                     initFilepond () {
                         const pond = FilePond.create(this.$refs.filepond, {
+                            dropOnPage: true,
+                            dropValidation: false,
                             onprocessfile: (error, file) => {
                                 pond.removeFile(file.id)
 

@@ -66,6 +66,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | InfoDot is the only front door (R-27 §9)
+    |--------------------------------------------------------------------------
+    | When true, the login PAGE sends visitors to InfoDot, where they sign in
+    | and InfoDot's launch page posts them back into /auth/ecosystem. Password
+    | recovery and the rest of Fortify stay wired underneath for break-glass.
+    | Defaults on in production only, so local development and the test suite
+    | keep the plain form.
+    */
+
+    'sso_only' => (bool) env('ECOSYSTEM_SSO_ONLY', env('APP_ENV') === 'production'),
+
+    /*
+    |--------------------------------------------------------------------------
     | InfoDot identity (redeem)
     |--------------------------------------------------------------------------
     | This app has its own database, so a handoff token from InfoDot cannot be

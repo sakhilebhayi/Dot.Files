@@ -7,6 +7,7 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\FileOpenController;
 use App\Http\Controllers\ShareApprovalController;
 use App\Http\Controllers\SharedFileController;
+use App\Http\Controllers\TrashController;
 use App\Models\File;
 use App\Services\FileShareService;
 use Illuminate\Session\Middleware\StartSession;
@@ -68,7 +69,16 @@ Route::get('/cookies', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/files', [FileController::class, 'index'])->name('files');
     Route::get('/files/{file}/preview', [FileController::class, 'preview'])->name('files.preview');
+    // The document itself, rendered in the browser (R-27): same policy as the download,
+    // inline disposition, and only for formats a browser renders passively.
+    Route::get('/files/{file}/inline', [FileController::class, 'inline'])->name('files.inline');
+    Route::post('/files/{file}/pin', [FileController::class, 'togglePin'])->name('files.pin');
     Route::get('/files/{file}', [FileController::class, 'download'])->name('files.download');
+
+    // The trash (R-27): single-click deletions wait 30 days here before the purge.
+    Route::get('/trash', [TrashController::class, 'index'])->name('trash');
+    Route::post('/trash/{obj}/restore', [TrashController::class, 'restore'])->name('trash.restore');
+    Route::post('/trash/{obj}/destroy', [TrashController::class, 'destroy'])->name('trash.destroy');
     // The destination of an InfoDot deep link: a file, by uuid. Re-authorised here.
     Route::get('/o/{uuid}', FileOpenController::class)->name('files.open');
 

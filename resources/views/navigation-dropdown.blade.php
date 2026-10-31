@@ -17,6 +17,9 @@
                     <a href="{{ route('approvals') }}" class="fx-top-link" @if (request()->routeIs('approvals')) aria-current="page" @endif>
                         {{ __('Sharing approvals') }}
                     </a>
+                    <a href="{{ route('trash') }}" class="fx-top-link" @if (request()->routeIs('trash')) aria-current="page" @endif>
+                        {{ __('Trash') }}
+                    </a>
                     @if (Auth::user()->is_platform_operator)
                         <a href="{{ route('operator.deletion-requests.index') }}" class="fx-top-link" @if (request()->routeIs('operator.*')) aria-current="page" @endif>
                             {{ __('Operator queue') }}
@@ -99,6 +102,7 @@
         <a href="{{ route('files') }}" class="fx-top-link block">{{ __('Files') }}</a>
         <a href="{{ route('shared') }}" class="fx-top-link block">{{ __('Shared with me') }}</a>
         <a href="{{ route('approvals') }}" class="fx-top-link block">{{ __('Sharing approvals') }}</a>
+        <a href="{{ route('trash') }}" class="fx-top-link block">{{ __('Trash') }}</a>
         @if (Auth::user()->is_platform_operator)
             <a href="{{ route('operator.deletion-requests.index') }}" class="fx-top-link block">{{ __('Operator queue') }}</a>
         @endif

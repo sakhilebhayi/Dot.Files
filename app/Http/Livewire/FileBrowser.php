@@ -4,6 +4,7 @@ namespace App\Http\Livewire;
 
 use App\Models\BulkDeletionRequest;
 use App\Models\File;
+use App\Models\FilePin;
 use App\Models\FileShare;
 use App\Models\Folder;
 use App\Models\Obj;
@@ -99,9 +100,9 @@ class FileBrowser extends Component
     public function getStatsProperty(): array
     {
         return [
-            'documents' => File::count(),
-            'folders' => max(0, Folder::count() - 1), // the root is the room, not a folder someone made
-            'bytes' => (int) File::sum('size'),
+            'documents' => Obj::where('objectable_type', 'file')->whereNull('trashed_at')->count(),
+            'folders' => Obj::where('objectable_type', 'folder')->whereNull('trashed_at')->whereNotNull('parent_id')->count(),
+            'bytes' => (int) File::sum('size'), // disk truth: the trash still occupies it
         ];
     }
 
@@ -118,17 +119,63 @@ class FileBrowser extends Component
         return FileShare::pending()->whereIn('file_id', File::pluck('id'))->count();
     }
 
+    /** Shelf filter: all, or one document kind (folders show only on 'all'). */
+    public string $kind = 'all';
+
+    public const KINDS = ['all', 'pdf', 'doc', 'sheet', 'image', 'media', 'archive'];
+
+    public function updatedKind($value): void
+    {
+        if (! in_array($value, self::KINDS, true)) {
+            $this->kind = 'all';
+        }
+    }
+
     public function getResultsProperty()
     {
         if (! empty($this->query)) {
-            return Obj::search($this->query)
-                ->query(fn ($q) => $q->where('objects.team_id', $this->resolveCurrentTeam()?->id ?? 0))
+            $results = Obj::search($this->query)
+                ->query(fn ($q) => $q->where('objects.team_id', $this->resolveCurrentTeam()?->id ?? 0)
+                    ->whereNull('objects.trashed_at'))
                 ->get()
                 ->values()
                 ->load('objectable');
+        } else {
+            $results = $this->object->children()->whereNull('trashed_at')->with('objectable')->get();
         }
 
-        return $this->object->children;
+        if ($this->kind === 'all') {
+            return $results;
+        }
+
+        return $results->filter(fn ($o) => $o->objectable_type === 'file' && $o->objectable->kind() === $this->kind)->values();
+    }
+
+    /**
+     * The documents this person pinned to the front (R-27). A pin orders, it never grants:
+     * the File query carries the team scope, so a pin to a file the current company does not
+     * own simply resolves to nothing.
+     */
+    public function getPinsProperty()
+    {
+        $ids = FilePin::where('user_id', auth()->id())->latest()->limit(8)->pluck('file_id');
+
+        return File::whereIn('id', $ids)->get()
+            ->filter(fn ($f) => ! $f->isTrashed())
+            ->sortBy(fn ($f) => $ids->search($f->id))->values();
+    }
+
+    public function togglePin(int $fileId): void
+    {
+        $file = File::find($fileId); // team-scoped: another company's id resolves to null
+
+        if (! $file) {
+            return;
+        }
+
+        $pin = FilePin::where('user_id', auth()->id())->where('file_id', $file->id)->first();
+
+        $pin ? $pin->delete() : FilePin::create(['user_id' => auth()->id(), 'file_id' => $file->id]);
     }
 
     public function deleteObject()
@@ -144,13 +191,13 @@ class FileBrowser extends Component
         // must belong to the company the person is acting for.
         abort_unless($obj->team_id === $this->resolveCurrentTeam()?->id, 403);
 
-        // Deleting an Obj cascades to every descendant and unlinks each blob, so "single delete"
-        // is only truly single for a file or an empty folder. The team's ROOT is never deletable
-        // here (that is the team-deletion flow), and a folder that still has children goes through
-        // the operator-approved bulk gate instead of vanishing on one click (R-25).
+        // The team's ROOT is never deletable here (that is the team-deletion flow), and a folder
+        // that still has children goes through the operator-approved bulk gate instead of
+        // vanishing on one click (R-25). A file or an empty folder goes to the TRASH (R-27):
+        // held for 30 days, restorable from /trash, access through shares blocked meanwhile.
         abort_if($obj->parent_id === null, 403, 'The root folder cannot be deleted.');
 
-        if ($obj->objectable_type === 'folder' && $obj->children()->exists()) {
+        if ($obj->objectable_type === 'folder' && $obj->children()->whereNull('trashed_at')->exists()) {
             BulkDeletionRequest::create([
                 'team_id' => $obj->team_id,
                 'requested_by' => auth()->id(),
@@ -162,7 +209,7 @@ class FileBrowser extends Component
             return;
         }
 
-        $obj->delete();
+        $obj->trash(auth()->id());
         $this->object = $this->object->fresh();
     }
 
@@ -230,6 +277,7 @@ class FileBrowser extends Component
                 'name' => $safeName,
                 'size' => $upload->getSize(),
                 'mime' => $upload->getMimeType(),
+                'uploaded_by' => auth()->id(),
                 'path' => $upload->store('files', ['disk' => 'local']),
             ])
         );
