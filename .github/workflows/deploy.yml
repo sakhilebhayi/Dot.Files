@@ -187,7 +187,7 @@ jobs:
           [ -n "$KEY" ] && [ "$KEY" != "/" ] || { echo "::error::cannot work out the app folder name; the probe did not run"; exit 1; }
           EXPOSED=0
           UNREACHED=0
-          for P in .env .env.bak-secrets artisan composer.json composer.lock database/database.sqlite storage/logs/laravel.log vendor/autoload.php phpunit.xml; do
+          for P in .env .env.bak-secrets artisan composer.json composer.lock database/database.sqlite storage/logs/laravel.log vendor/autoload.php phpunit.xml storage/app/files/ storage/objects.index; do
             CODE=$(curl -s -o /dev/null -m 15 -w '%{http_code}' "$SITE_URL/$KEY/$P" || true)
             case "$CODE" in
               200) echo "::error::EXPOSED /$KEY/$P answered 200"; EXPOSED=1 ;;
@@ -200,4 +200,4 @@ jobs:
             echo "::error::The application folder is readable over HTTP (database, logs or vendor/ may be downloadable). Run the App Folder Guard workflow in InfoDot (mode apply) or add the deny file by hand, then re-run."
             exit 1
           fi
-          echo "== App-folder probe: no sensitive path answered 200 ($((9 - UNREACHED)) of 9 paths verified)."
+          echo "== App-folder probe: no sensitive path answered 200 ($((11 - UNREACHED)) of 11 paths verified)."

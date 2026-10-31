@@ -1,0 +1,39 @@
+# R-25: the quality gate this repo never had — deploys were manual with no test run anywhere.
+# Tests are pinned to in-memory sqlite by phpunit.xml, so CI needs no database service.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: files-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo_sqlite, zip
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Pint (changed files must be clean)
+        run: vendor/bin/pint --test --dirty || vendor/bin/pint --test
+
+      - name: Run the suite
+        run: php artisan test --compact
