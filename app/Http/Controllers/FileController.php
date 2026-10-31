@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\VersionConflictException;
 use App\Models\File;
 use App\Models\FilePin;
 use App\Models\FileVersion;
@@ -92,9 +93,16 @@ class FileController extends Controller
         $request->validate([
             'upload' => ['required', 'file', 'max:102400',
                 'mimes:pdf,csv,txt,text,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,svg,zip,tar,gz,mp4,mp3,mov,avi'],
+            'base_version' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $version = $versions->replaceFromUpload($file, $request->file('upload'), $request->user()->id);
+        try {
+            $version = $versions->replaceFromUpload($file, $request->file('upload'), $request->user()->id,
+                $request->filled('base_version') ? (int) $request->input('base_version') : null);
+        } catch (VersionConflictException $e) {
+            return redirect()->route('files.open', $file->uuid)
+                ->with('conflict', 'While you had this page open, the document moved on to version '.$e->currentVersion.'. Nothing was saved — review the latest version below, then replace again if your content should still win.');
+        }
 
         return redirect()->route('files.open', $file->uuid)
             ->with('status', 'New content saved as version '.$version->version.'. Every earlier version stays in the history below.');

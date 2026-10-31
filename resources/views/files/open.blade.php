@@ -4,6 +4,10 @@
             <div class="fx-note fx-note--good" role="status">{{ session('status') }}</div>
         @endif
 
+        @if (session('conflict'))
+            <div class="fx-note fx-note--bad" role="alert">{{ session('conflict') }}</div>
+        @endif
+
         @if ($trashed)
             <div class="fx-note fx-note--bad" role="status">
                 {{ __('This document is in the trash. No one outside the company can open it, and it will be removed for good after the holding window.') }}
@@ -88,6 +92,7 @@
                 <form x-cloak x-show="replacing" method="POST" action="{{ route('files.replace', $file) }}" enctype="multipart/form-data"
                       class="mt-3 flex flex-wrap items-center gap-2">
                     @csrf
+                    <input type="hidden" name="base_version" value="{{ $versions->first()?->version }}">
                     <label class="sr-only" for="replace-upload">{{ __('New content') }}</label>
                     <input id="replace-upload" type="file" name="upload" required class="fx-input !w-auto flex-grow min-w-[14rem]">
                     <button type="submit" class="fx-btn fx-btn--oxide">{{ __('Save as new version') }}</button>

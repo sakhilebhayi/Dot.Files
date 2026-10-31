@@ -52,10 +52,18 @@ same format allowlist as the workspace upload, names cleaned to a basename. Repl
 pointer registers (null right after store), `open_url` the deep link people use (`/o/{uuid}`).
 
 ### POST /api/platform/files/update  (throttle 60/min)
-`{team_uuid, uuid, content_b64, name?}` → saves new content for a file THIS platform filed, as a
-NEW version (R-28 Part F): the old content stays in the file's append-only trail, the file row
-moves forward, the snapshot regenerates. Replies the file's meta plus `{version, checksum}`.
-Same caps and cleaning as store; a trashed file answers `not_found`.
+`{team_uuid, uuid, content_b64, name?, base_version?}` → saves new content for a file THIS
+platform filed, as a NEW version (R-28 Part F): the old content stays in the file's append-only
+trail, the file row moves forward, the snapshot regenerates. Replies the file's meta plus
+`{version, checksum}`. Same caps and cleaning as store; a trashed file answers `not_found`.
+
+**Send `base_version`** — the `version` your platform last read (from a previous store/update
+reply) — and the save is accepted only if the document is still on that version. If someone or
+some other platform moved it on meanwhile, the call answers **409
+`{"error":"version_conflict","current_version":N,"checksum":…}`** and writes nothing: fetch the
+current content, reconcile, then update again with the new `base_version` (R-28 §31 — no silent
+overwrites). Omitting `base_version` keeps the original v1 behaviour: the write lands as the
+newest version and every earlier state stays in the trail.
 
 ### POST /api/platform/files/fetch  (throttle 120/min)
 `{team_uuid, uuid}` → `{uuid, name, size, mime, content_b64}` for a file THIS platform filed for
