@@ -94,6 +94,53 @@
             @endforelse
         </section>
 
+        {{-- Shared by me --}}
+        <section class="fx-panel p-5" aria-label="{{ __('Shared by me') }}">
+            <h2 class="font-bold">{{ __('Shared by me') }}</h2>
+            @forelse ($mine as $share)
+                <div class="mt-3 flex flex-wrap items-center gap-3 border-t pt-3" style="border-color: var(--line);">
+                    <div class="min-w-0 flex-grow">
+                        <p class="font-medium break-words">{{ $share->file?->name ?? __('(file no longer exists)') }}
+                            <span style="color: var(--ink-soft);">· {{ __('to') }} {{ $share->email }}</span></p>
+                        <p class="text-sm" style="color: var(--ink-soft); font-variant-numeric: tabular-nums;">
+                            {{ $share->created_at->format('j M Y') }}
+                            @if ($share->isActive()) · {{ __('until') }} {{ $share->expires_at->format('j M Y') }} @endif
+                        </p>
+                    </div>
+                    @if ($share->isActive())
+                        <span class="fx-stamp fx-stamp--active">{{ __('Active') }}</span>
+                    @elseif ($share->status === 'pending')
+                        <span class="fx-stamp fx-stamp--pending">{{ __('Pending') }}</span>
+                    @else
+                        <span class="fx-stamp fx-stamp--ended">{{ $share->status === 'declined' ? __('Declined') : ($share->revoked_at ? __('Removed') : __('Expired')) }}</span>
+                    @endif
+                </div>
+            @empty
+                <p class="mt-3 text-sm" style="color: var(--ink-soft);">{{ __('You have not shared anything outside the company.') }}</p>
+            @endforelse
+        </section>
+
+        {{-- Platform connections --}}
+        <section class="fx-panel p-5" aria-label="{{ __('Platform connections') }}">
+            <h2 class="font-bold">{{ __('Platform connections') }}</h2>
+            <p class="mt-1 text-sm" style="color: var(--ink-soft);">
+                {{ __('Dot platforms that hold or work with this company’s files, from the audit trail. A platform appears here only once it has really acted.') }}
+            </p>
+            @forelse ($platformActivity as $row)
+                <div class="mt-3 flex flex-wrap items-center gap-3 border-t pt-3" style="border-color: var(--line);">
+                    <div class="min-w-0 flex-grow">
+                        <p class="font-medium">{{ $row->name }}</p>
+                        <p class="text-sm" style="color: var(--ink-soft); font-variant-numeric: tabular-nums;">
+                            {{ $row->stored }} {{ __('filed') }} · {{ $row->events }} {{ __('events') }} · {{ __('last') }} {{ \Illuminate\Support\Carbon::parse($row->last_at)->format('j M Y H:i') }}
+                        </p>
+                    </div>
+                    <span class="fx-stamp fx-stamp--active">{{ __('Connected') }}</span>
+                </div>
+            @empty
+                <p class="mt-3 text-sm" style="color: var(--ink-soft);">{{ __('No Dot platform has filed or touched this company’s documents yet. Platforms connect through the platform file API, each with its own key.') }}</p>
+            @endforelse
+        </section>
+
         {{-- Settled --}}
         <section class="fx-panel p-5" aria-label="{{ __('Settled') }}">
             <h2 class="font-bold">{{ __('Settled') }}</h2>

@@ -72,6 +72,57 @@
             </div>
         </article>
 
+        {{-- Version history (R-28): the append-only content trail. --}}
+        <section class="fx-panel p-5" aria-label="{{ __('Version history') }}" x-data="{ replacing: false }">
+            <div class="flex flex-wrap items-center gap-3">
+                <h2 class="font-bold flex-grow">{{ __('Version history') }}</h2>
+                @unless ($trashed)
+                    <button type="button" class="fx-btn" @click="replacing = ! replacing">{{ __('Replace content') }}</button>
+                @endunless
+            </div>
+            <p class="mt-1 text-sm" style="color: var(--ink-soft);">
+                {{ __('Every change to this document’s content is kept. Restoring an old version brings it back as a new one — nothing in between is ever erased.') }}
+            </p>
+
+            @unless ($trashed)
+                <form x-cloak x-show="replacing" method="POST" action="{{ route('files.replace', $file) }}" enctype="multipart/form-data"
+                      class="mt-3 flex flex-wrap items-center gap-2">
+                    @csrf
+                    <label class="sr-only" for="replace-upload">{{ __('New content') }}</label>
+                    <input id="replace-upload" type="file" name="upload" required class="fx-input !w-auto flex-grow min-w-[14rem]">
+                    <button type="submit" class="fx-btn fx-btn--oxide">{{ __('Save as new version') }}</button>
+                </form>
+                @error('upload')<p class="mt-2 text-sm" style="color: var(--danger);">{{ $message }}</p>@enderror
+            @endunless
+
+            <div class="mt-3">
+                @foreach ($versions as $version)
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 border-t" style="border-color: var(--line);">
+                        <span class="fx-ref">v{{ $version->version }}</span>
+                        <div class="min-w-0 flex-grow">
+                            <p class="text-sm font-medium">{{ $version->actionLabel() }}
+                                @if ($version->author) · {{ $version->author->name }} @endif
+                            </p>
+                            <p class="text-xs" style="color: var(--ink-soft); font-variant-numeric: tabular-nums;"
+                               title="sha-256 {{ $version->checksum }}">
+                                {{ $version->created_at->format('j M Y H:i') }} · {{ \App\Models\File::bytesForHumans((int) $version->size) }}
+                                @if ($version->checksum) · {{ substr($version->checksum, 0, 12) }}… @endif
+                            </p>
+                        </div>
+                        <a href="{{ route('files.versions.download', [$file, $version]) }}" class="fx-btn fx-btn--quiet">{{ __('Download') }}</a>
+                        @if ($version->version === (int) $file->current_version)
+                            <span class="fx-stamp fx-stamp--active">{{ __('Current') }}</span>
+                        @elseif (! $trashed)
+                            <form method="POST" action="{{ route('files.versions.restore', [$file, $version]) }}">
+                                @csrf
+                                <button type="submit" class="fx-btn fx-btn--quiet">{{ __('Restore') }}</button>
+                            </form>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        </section>
+
         @if ($events->isNotEmpty())
             <section class="fx-panel p-5" aria-label="{{ __('Sharing trail') }}">
                 <h2 class="font-bold">{{ __('Sharing trail') }}</h2>

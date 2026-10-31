@@ -73,6 +73,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // inline disposition, and only for formats a browser renders passively.
     Route::get('/files/{file}/inline', [FileController::class, 'inline'])->name('files.inline');
     Route::post('/files/{file}/pin', [FileController::class, 'togglePin'])->name('files.pin');
+
+    // Version history (R-28): replace creates a version, restore copies one forward; the
+    // trail is append-only — no route edits or deletes a version.
+    Route::post('/files/{file}/replace', [FileController::class, 'replace'])->name('files.replace');
+    Route::get('/files/{file}/versions/{version}/download', [FileController::class, 'downloadVersion'])->name('files.versions.download');
+    Route::post('/files/{file}/versions/{version}/restore', [FileController::class, 'restoreVersion'])->name('files.versions.restore');
     Route::get('/files/{file}', [FileController::class, 'download'])->name('files.download');
 
     // The trash (R-27): single-click deletions wait 30 days here before the purge.
@@ -113,8 +119,16 @@ Route::middleware(['auth', 'verified', 'operator'])->prefix('operator')->name('o
     Route::post('/deletion-requests/bulk/{bulkDeletionRequest}/reject', [DeletionModerationController::class, 'rejectBulk'])->name('deletion-requests.bulk.reject');
 });
 
-// Public sign-up is closed (accounts are created by InfoDot at first sign-in). Keep the named route so any link or
-// invitation email that points at it lands on the login page instead of failing.
+// Public sign-up is closed (accounts are created by InfoDot at first sign-in). Any link that
+// points at it lands on InfoDot's registration in SSO-only mode, else on the login page.
 if (! Features::enabled(Features::registration())) {
-    Route::redirect('/register', '/login')->name('register');
+    Route::get('/register', function () {
+        $infodot = (string) config('ecosystem.platforms.infodot.url', '');
+
+        if ($infodot !== '' && config('ecosystem.sso_only')) {
+            return redirect()->away(rtrim($infodot, '/').'/register');
+        }
+
+        return redirect('/login');
+    })->name('register');
 }

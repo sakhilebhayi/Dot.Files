@@ -136,6 +136,11 @@ class WorkspaceR27Test extends TestCase
         config(['ecosystem.sso_only' => true, 'ecosystem.platforms.infodot.url' => 'https://infodot.co.za']);
         $this->get('/login')->assertRedirect('https://infodot.co.za/login');
 
+        // R-28 §14–15: every other local authentication page goes to InfoDot too.
+        $this->get('/register')->assertRedirect('https://infodot.co.za/register');
+        $this->get('/forgot-password')->assertRedirect('https://infodot.co.za/forgot-password');
+        $this->get('/reset-password/some-token')->assertRedirect('https://infodot.co.za/forgot-password');
+
         // Break-glass: with the switch off, the local form is back.
         // (Registration stays closed in production — RegistrationClosedTest owns that;
         // the suite itself runs with ALLOW_REGISTRATION=true for Jetstream's own tests.)

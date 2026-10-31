@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\File;
 use App\Models\FilePin;
+use App\Models\FileVersion;
 use App\Models\Obj;
 use App\Models\Team;
+use App\Services\FileVersions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -75,6 +77,49 @@ class FileController extends Controller
             'Cache-Control' => 'private, max-age=300',
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    /**
+     * Replace a document's content with a new upload (R-28 Part F): the old content stays as
+     * its version, the file moves forward, the snapshot regenerates. Same membership rule as
+     * every other change in this workspace; the trail records exactly who did it.
+     */
+    public function replace(Request $request, File $file, FileVersions $versions)
+    {
+        $this->authorize('download', $file);
+        abort_if($file->isTrashed(), 409, 'This document is in the trash; restore it first.');
+
+        $request->validate([
+            'upload' => ['required', 'file', 'max:102400',
+                'mimes:pdf,csv,txt,text,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png,gif,webp,svg,zip,tar,gz,mp4,mp3,mov,avi'],
+        ]);
+
+        $version = $versions->replaceFromUpload($file, $request->file('upload'), $request->user()->id);
+
+        return redirect()->route('files.open', $file->uuid)
+            ->with('status', 'New content saved as version '.$version->version.'. Every earlier version stays in the history below.');
+    }
+
+    /** One historical version's content, under the same policy as the live download. */
+    public function downloadVersion(File $file, FileVersion $version)
+    {
+        $this->authorize('download', $file);
+        abort_unless($version->file_id === $file->id, 404);
+        abort_unless(Storage::disk('local')->exists($version->path), 410);
+
+        return Storage::disk('local')->download($version->path, 'v'.$version->version.' — '.$version->name);
+    }
+
+    /** Bring an old version forward as the newest one; nothing in between is erased. */
+    public function restoreVersion(Request $request, File $file, FileVersion $version, FileVersions $versions)
+    {
+        $this->authorize('download', $file);
+        abort_if($file->isTrashed(), 409, 'This document is in the trash; restore it first.');
+
+        $new = $versions->restore($file, $version, $request->user()->id);
+
+        return redirect()->route('files.open', $file->uuid)
+            ->with('status', 'Version '.$version->version.' is back as version '.$new->version.'. The history in between is untouched.');
     }
 
     /** Pin or unpin this file for the signed-in person (R-27). A pin is a bookmark, not access. */

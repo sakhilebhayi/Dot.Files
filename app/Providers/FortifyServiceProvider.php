@@ -40,14 +40,33 @@ class FortifyServiceProvider extends ServiceProvider
         // Registered after every provider boots: Jetstream sets its own loginView in ITS boot,
         // and whoever registers last wins.
         $this->app->booted(function () {
-            Fortify::loginView(function () {
+            // R-28 §14–15: in SSO-only mode, EVERY local authentication page sends the visitor
+            // to the matching InfoDot page — no Dot.Files login, registration or recovery
+            // interface renders. The POST handlers underneath stay wired for break-glass
+            // (ECOSYSTEM_SSO_ONLY=false), and the SSO callback (/auth/ecosystem) is untouched.
+            $ssoPage = function (string $view, string $infodotPath) {
+                return function () use ($view, $infodotPath) {
+                    $infodot = (string) config('ecosystem.platforms.infodot.url', '');
+
+                    if ($infodot !== '' && config('ecosystem.sso_only')) {
+                        return redirect()->away(rtrim($infodot, '/').$infodotPath);
+                    }
+
+                    return view($view);
+                };
+            };
+
+            Fortify::loginView($ssoPage('auth.login', '/login'));
+            Fortify::registerView($ssoPage('auth.register', '/register'));
+            Fortify::requestPasswordResetLinkView($ssoPage('auth.forgot-password', '/forgot-password'));
+            Fortify::resetPasswordView(function () {
                 $infodot = (string) config('ecosystem.platforms.infodot.url', '');
 
                 if ($infodot !== '' && config('ecosystem.sso_only')) {
-                    return redirect()->away(rtrim($infodot, '/').'/login');
+                    return redirect()->away(rtrim($infodot, '/').'/forgot-password');
                 }
 
-                return view('auth.login');
+                return view('auth.reset-password', ['request' => request()]);
             });
         });
     }

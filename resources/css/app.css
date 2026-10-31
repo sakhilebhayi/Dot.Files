@@ -760,6 +760,259 @@
 }
 
 /*
+ * The ecosystem search bar (R-28 §3) — an intentional exception to the ledger's own identity:
+ * this is InfoDot's search component, ported value-for-value from infodot.css (the landing
+ * pill: 44px cream field, gold-arrow go button, Ctrl K, command dropdown) so search looks and
+ * behaves the same across the Dot ecosystem. Its colours and face (Archivo, self-hosted) are
+ * InfoDot's own literals, scoped under .ix-search/.ix-results so the ledger stays untouched.
+ */
+@layer components {
+    @font-face {
+        font-family: 'Archivo';
+        src: url('/fonts/archivo-latin.woff2') format('woff2');
+        font-weight: 400 700;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    .ix-top__search {
+        flex: 1 1 200px;
+        min-width: 150px;
+        max-width: 640px;
+        align-self: center;
+        --ixs-font: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+        --ixs-panel: #f7f8f8;
+        --ixs-hover: #eceeee;
+        --ixs-rule: #c4c9cc;
+        --ixs-rule-strong: #8c959a;
+        --ixs-text: #14181a;
+        --ixs-text-2: #394349;
+        --ixs-text-3: #566268;
+        --ixs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    :root[data-theme='dark'] .ix-top__search {
+        --ixs-panel: #191f22;
+        --ixs-hover: #20272a;
+        --ixs-rule: #2b3438;
+        --ixs-rule-strong: #4c5960;
+        --ixs-text: #e9ecec;
+        --ixs-text-2: #b1babe;
+        --ixs-text-3: #8d989d;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) .ix-top__search {
+            --ixs-panel: #191f22;
+            --ixs-hover: #20272a;
+            --ixs-rule: #2b3438;
+            --ixs-rule-strong: #4c5960;
+            --ixs-text: #e9ecec;
+            --ixs-text-2: #b1babe;
+            --ixs-text-3: #8d989d;
+        }
+    }
+
+    .ix-sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .ix-search {
+        position: relative;
+    }
+
+    .ix-search .ix-input {
+        display: block;
+        width: 100%;
+        height: 44px;
+        padding: 0 104px 0 22px;
+        border-radius: 999px;
+        border: 0;
+        background: #f6f4ee;
+        color: #1b2124;
+        font: 400 15px/1.5 var(--ixs-font);
+        box-shadow: 0 10px 28px -14px rgba(0, 0, 0, 0.55);
+        text-overflow: ellipsis;
+        transition: border-color 0.12s var(--ixs-ease), box-shadow 0.12s var(--ixs-ease);
+    }
+
+    .ix-search .ix-input::placeholder {
+        color: #5b666b;
+    }
+
+    .ix-search .ix-input:focus {
+        background: #fff;
+        color: #1b2124;
+        outline: 2px solid #f0bc2e;
+        outline-offset: 0;
+        box-shadow: 0 10px 28px -14px rgba(0, 0, 0, 0.55);
+    }
+
+    .ix-kbd {
+        position: absolute;
+        right: 48px;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 2px 6px;
+        border: 1px solid rgba(27, 33, 36, 0.3);
+        border-radius: 2px;
+        font: 600 11px/1.4 var(--ixs-font);
+        color: #5b666b;
+        pointer-events: none;
+    }
+
+    .ix-search .ix-search__go {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: #1b2124;
+        color: #f1c62e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.12s var(--ixs-ease);
+    }
+
+    .ix-search .ix-search__go:hover {
+        background: #2b3439;
+    }
+
+    .ix-search .ix-search__go:focus-visible {
+        outline: 2px solid #1b2124;
+        outline-offset: 2px;
+    }
+
+    .ix-arrow {
+        display: inline-block;
+        flex: none;
+        height: 1em;
+        aspect-ratio: 196 / 310;
+        background: currentColor;
+        -webkit-mask: var(--ix-arrow-url) center / contain no-repeat;
+        mask: var(--ix-arrow-url) center / contain no-repeat;
+        transition: transform 160ms var(--ixs-ease);
+    }
+
+    .ix-search .ix-search__go .ix-arrow {
+        font-size: 17px;
+    }
+
+    .ix-results {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(100% + 6px);
+        z-index: 60;
+        min-width: 320px;
+        max-height: min(70vh, 560px);
+        overflow-y: auto;
+        background: var(--ixs-panel);
+        color: var(--ixs-text);
+        border: 1px solid var(--ixs-rule);
+        border-radius: 3px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        font-family: var(--ixs-font);
+        font-size: 14px;
+        text-align: left;
+    }
+
+    .ix-results__item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--ixs-rule);
+        color: var(--ixs-text);
+        font-weight: 500;
+        text-align: left;
+    }
+
+    .ix-results__item:last-child {
+        border-bottom: 0;
+    }
+
+    .ix-results__item:hover,
+    .ix-results__item.is-active {
+        background: var(--ixs-hover);
+    }
+
+    .ix-results__item svg {
+        color: var(--ixs-text-3);
+    }
+
+    .ix-results__foot {
+        margin: 0;
+        padding: 12px;
+        color: var(--ixs-text-2);
+    }
+
+    .ix-results__tag {
+        margin-left: 8px;
+        padding: 1px 6px;
+        border: 1px solid var(--ixs-rule-strong);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .ix-pop__head {
+        padding: 8px 10px 4px;
+        font-weight: 600;
+        font-size: 12px;
+        color: var(--ixs-text-3);
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .ix-quick {
+        padding: 4px;
+    }
+
+    .ix-quick__row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 4px 10px 10px;
+    }
+
+    .ix-quick__chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border: 1px solid var(--ixs-rule-strong);
+        background: var(--ixs-panel);
+        color: var(--ixs-text);
+        font: 600 13px var(--ixs-font);
+    }
+
+    .ix-quick__chip:hover {
+        background: var(--ixs-hover);
+    }
+
+    .ix-results .fx-ref {
+        font-size: 11px;
+    }
+}
+
+/*
  * Reduced motion (WCAG 2.3.3): people who ask the system for less motion get none of it from
  * transitions, animations or smooth scrolling, whichever file or utility class declares them.
  */

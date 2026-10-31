@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Http\Livewire\FileBrowser;
+use App\Http\Livewire\FileSearch;
 use App\Http\Livewire\FileShares;
 use App\Http\Livewire\NavigationDropdown;
 use App\Models\File;
@@ -58,6 +59,7 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('file-browser', FileBrowser::class);
         Livewire::component('file-shares', FileShares::class);
         Livewire::component('navigation-dropdown', NavigationDropdown::class);
+        Livewire::component('file-search', FileSearch::class);
 
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());

@@ -27,6 +27,11 @@
                 </div>
             </div>
 
+            {{-- The ecosystem search bar: InfoDot's component, on this company's files (R-28 §3). --}}
+            <div class="ix-top__search hidden md:block">
+                <livewire:file-search />
+            </div>
+
             {{-- Account / company menu --}}
             <div class="hidden sm:block relative">
                 <button type="button" class="fx-top-link flex items-center gap-2" @click="account = ! account"
