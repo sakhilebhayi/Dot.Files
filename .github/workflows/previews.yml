@@ -1,0 +1,53 @@
+name: Preview Backfill
+
+# Renders missing document snapshots on the host from the stored blobs
+# (files:previews). Exists because files uploaded before the preview
+# pipeline shipped sit at `pending` forever — new uploads render after
+# their own response, but nothing on the host walks the backlog.
+#
+# Fixed command on purpose — this workflow must never become a general
+# remote shell. Safe to re-run: without `retry` it only touches files
+# still `pending`; with `retry` it also re-attempts the ones the host
+# previously couldn't render (after a capability change, say).
+on:
+  workflow_dispatch:
+    inputs:
+      retry:
+        description: 'Type "retry" to also re-attempt files previously marked none'
+        required: false
+        default: ''
+
+jobs:
+  previews:
+    name: Render missing snapshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Run files:previews
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+              "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+              DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}" \
+              RETRY="${{ github.event.inputs.retry }}" \
+              'bash -s' <<'PREVIEWS'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          PHP=php
+          echo "== Snapshot backlog before"
+          $PHP artisan tinker --execute='printf("pending=%d none=%d ready=%d\n", App\Models\File::withoutGlobalScope("team")->where("preview_status","pending")->count(), App\Models\File::withoutGlobalScope("team")->where("preview_status","none")->count(), App\Models\File::withoutGlobalScope("team")->where("preview_status","ready")->count());'
+          if [ "$RETRY" = "retry" ]; then
+            $PHP artisan files:previews --retry
+          else
+            $PHP artisan files:previews
+          fi
+          echo "== Snapshot backlog after"
+          $PHP artisan tinker --execute='printf("pending=%d none=%d ready=%d\n", App\Models\File::withoutGlobalScope("team")->where("preview_status","pending")->count(), App\Models\File::withoutGlobalScope("team")->where("preview_status","none")->count(), App\Models\File::withoutGlobalScope("team")->where("preview_status","ready")->count());'
+          PREVIEWS
