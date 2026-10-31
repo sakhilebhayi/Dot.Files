@@ -206,7 +206,7 @@
                                 <p class="fx-card-meta">{{ __('Folder') }} · {{ $child->created_at->format('j M Y') }}</p>
                             @else
                                 <a href="{{ route('files.open', $child->objectable->uuid) }}" class="fx-card-title">{{ $child->objectable->name }}</a>
-                                <p class="fx-card-meta">{{ $child->objectable->kindLabel() }} · {{ $child->objectable->sizeForHumans() }} · {{ $child->created_at->format('j M Y') }}</p>
+                                <p class="fx-card-meta">{{ $child->objectable->kindLabel() }} · {{ $child->objectable->sizeForHumans() }} · {{ $child->created_at->format('j M Y') }}@if ($child->objectable->originLabel()) · {{ __('from') }} {{ $child->objectable->originLabel() }}@endif</p>
                             @endif
                         @endif
 
@@ -294,7 +294,7 @@
                                 @endif
                             </td>
                             <td class="hidden sm:table-cell" style="color: var(--ink-soft);">
-                                {{ $child->objectable_type === 'folder' ? __('Folder') : $child->objectable->kindLabel() }}
+                                {{ $child->objectable_type === 'folder' ? __('Folder') : $child->objectable->kindLabel() }}@if ($child->objectable_type === 'file' && $child->objectable->originLabel()) · {{ $child->objectable->originLabel() }}@endif
                             </td>
                             <td style="color: var(--ink-soft);">
                                 {{ $child->objectable_type === 'file' ? $child->objectable->sizeForHumans() : '—' }}

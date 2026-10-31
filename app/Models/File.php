@@ -38,6 +38,16 @@ class File extends Model
         return $this->obj()->withoutGlobalScope('team')->whereNotNull('trashed_at')->exists();
     }
 
+    /** The Dot platform that filed this document, by display name — null when a person did. */
+    public function originLabel(): ?string
+    {
+        if ($this->origin_platform === null) {
+            return null;
+        }
+
+        return (string) (config("ecosystem.platforms.{$this->origin_platform}.name") ?: ucfirst($this->origin_platform));
+    }
+
     public function isPinnedBy(User $user): bool
     {
         return FilePin::where('user_id', $user->id)->where('file_id', $this->id)->exists();
