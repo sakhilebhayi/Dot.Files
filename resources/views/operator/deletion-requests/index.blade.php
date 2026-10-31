@@ -43,6 +43,16 @@
                     <div class="border-b py-3">
                         <p class="font-bold">{{ $request->team->name }} &mdash; {{ count($request->object_ids) }} item(s)</p>
                         <p class="text-sm text-gray-500 mb-2">Requested by {{ $request->requester->name }}</p>
+                        @if (! empty($request->object_names))
+                            <ul class="text-sm text-gray-600 mb-2 list-disc list-inside">
+                                @foreach (array_slice($request->object_names, 0, 10) as $name)
+                                    <li>{{ $name !== '' ? $name : 'unnamed item' }}</li>
+                                @endforeach
+                                @if (count($request->object_names) > 10)
+                                    <li>&hellip;and {{ count($request->object_names) - 10 }} more</li>
+                                @endif
+                            </ul>
+                        @endif
                         <div class="flex items-center gap-2">
                             <form method="POST" action="{{ route('operator.deletion-requests.bulk.approve', $request) }}">
                                 @csrf
