@@ -20,7 +20,9 @@
         <section class="fx-panel p-5" aria-label="{{ __('Waiting for approval') }}">
             <div class="flex items-center justify-between gap-3">
                 <h2 class="font-bold">{{ __('Waiting for approval') }}</h2>
-                <span class="fx-tally" aria-hidden="true">{{ $pending->count() }}</span>
+                @if ($pending->isNotEmpty())
+                    <span class="fx-tally" aria-hidden="true">{{ $pending->count() }}</span>
+                @endif
             </div>
 
             @forelse ($pending as $share)

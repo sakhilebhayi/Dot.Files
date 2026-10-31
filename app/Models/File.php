@@ -90,13 +90,13 @@ class File extends Model
 
     public static function bytesForHumans(int $bytes): string
     {
-        $units = ['b', 'kb', 'mb', 'gb', 'tb', 'pd'];
+        $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
 
         for ($i = 0; $bytes > 1024; $i++) {
             $bytes /= 1024;
         }
 
-        return round($bytes, 2).$units[$i];
+        return round($bytes, 2).' '.$units[$i];
     }
 
     public static function booted()

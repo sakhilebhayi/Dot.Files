@@ -53,11 +53,29 @@
                                             <button type="submit" class="fx-btn !min-h-[38px]">{{ __('Restore') }}</button>
                                         </form>
                                         @if ($canPurge)
-                                            <form method="POST" action="{{ route('trash.destroy', $item) }}"
-                                                  onsubmit="return confirm('{{ __('Remove this for good? Anyone it was shared with loses access, and there is no way back.') }}')">
-                                                @csrf
-                                                <button type="submit" class="fx-btn !min-h-[38px]" style="color: var(--oxide); border-color: var(--oxide);">{{ __('Delete for good') }}</button>
-                                            </form>
+                                            <div x-data="{ confirming: false }">
+                                                <button type="button" class="fx-btn !min-h-[38px]" style="color: var(--oxide); border-color: var(--oxide);"
+                                                        @click="confirming = true">{{ __('Delete for good') }}</button>
+
+                                                <div x-cloak x-show="confirming" class="fixed inset-0 z-50 grid place-items-center p-4"
+                                                     role="dialog" aria-modal="true" aria-label="{{ __('Delete for good') }}" @keydown.escape.window="confirming = false">
+                                                    <button type="button" class="absolute inset-0 w-full h-full" style="background: rgba(23, 20, 15, 0.55);"
+                                                            @click="confirming = false" aria-label="{{ __('Keep it') }}" tabindex="-1"></button>
+                                                    <div class="fx-panel relative w-full max-w-md p-5 text-left">
+                                                        <h2 class="font-bold text-lg">{{ __('Gone for good?') }}</h2>
+                                                        <p class="mt-2 text-sm" style="color: var(--ink-soft);">
+                                                            {{ __(':name is removed permanently: the document itself is destroyed, anyone it was shared with loses access, and there is no way back.', ['name' => $item->objectable->name ?? __('This record')]) }}
+                                                        </p>
+                                                        <div class="mt-4 flex justify-end gap-2">
+                                                            <button type="button" class="fx-btn" @click="confirming = false">{{ __('Keep it') }}</button>
+                                                            <form method="POST" action="{{ route('trash.destroy', $item) }}">
+                                                                @csrf
+                                                                <button type="submit" class="fx-btn fx-btn--oxide">{{ __('Delete for good') }}</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         @endif
                                     </div>
                                 </td>

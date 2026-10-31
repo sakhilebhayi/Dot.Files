@@ -44,9 +44,9 @@ file types (pdf, sheet, doc, image, archive, media, generic), share, clock, shie
 grid, list, search, plus, check, x, dots. No icon fonts, no emoji.
 
 ## Behaviour & motion
-One authored moment per flow: card hover lifts 2px with shadow deepen (120ms ease-out); snapshot
-open transitions via CSS `view-transition` where supported; upload progress is a determinate
-oxide line; approval state changes stamp in once (reduced-motion: instant). Browser surfaces are
+One authored moment per flow: card hover lifts 2px with shadow deepen (120ms ease-out); the
+document page settles onto the desk once (`fx-reveal`, 320ms rise); upload progress is a
+determinate oxide line; approval state changes stamp in once (reduced-motion: instant). Browser surfaces are
 themed: selection (oxide on paper), caret oxide, scrollbars thin kraft, focus ring 2px oxide.
 
 ## Page layouts

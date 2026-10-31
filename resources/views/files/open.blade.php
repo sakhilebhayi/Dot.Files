@@ -78,7 +78,7 @@
                 <p class="mt-1 text-sm" style="color: var(--ink-soft);">{{ __('Every sharing decision and use of this document, newest first. Owners and administrators see this; members do not.') }}</p>
                 @foreach ($events as $event)
                     <p class="mt-2 text-sm">
-                        <span class="fx-ref">{{ \Illuminate\Support\Carbon::parse($event->created_at)->format('j M Y H:i') }}</span>
+                        <span style="color: var(--ink-soft); font-variant-numeric: tabular-nums;">{{ \Illuminate\Support\Carbon::parse($event->created_at)->format('j M Y H:i') }}</span>
                         <strong class="ml-1">{{ ucfirst($event->event) }}</strong>
                         @if ($event->subject_email) · {{ $event->subject_email }}@endif
                         @if ($event->note) <span style="color: var(--ink-soft);">· {{ $event->note }}</span>@endif

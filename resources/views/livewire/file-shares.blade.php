@@ -69,7 +69,7 @@
         <h3 class="font-bold">{{ __('Activity') }}</h3>
         @forelse ($events as $event)
             <p class="mt-2 text-sm">
-                <span class="fx-ref">{{ \Illuminate\Support\Carbon::parse($event->created_at)->format('j M Y H:i') }}</span>
+                <span style="color: var(--ink-soft); font-variant-numeric: tabular-nums;">{{ \Illuminate\Support\Carbon::parse($event->created_at)->format('j M Y H:i') }}</span>
                 <strong class="ml-1">{{ ucfirst($event->event) }}</strong>
                 @if ($event->subject_email) · {{ $event->subject_email }}@endif
                 @if ($event->actor_email && $event->actor_email !== $event->subject_email) <span style="color: var(--ink-soft);">({{ __('by') }} {{ $event->actor_email }})</span>@endif

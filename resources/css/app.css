@@ -20,7 +20,7 @@
         --kraft-soft: #e8ddc2;
         --ink: #231f18;
         --ink-soft: #655d4d;
-        --ink-faint: #85796a;
+        --ink-faint: #6f6454;
         --oxide: #b3402a;
         --oxide-deep: #8f2f1d;
         --oxide-wash: rgba(179, 64, 42, 0.08);
@@ -36,6 +36,27 @@
         --r-control: 6px;
         --r-ref: 3px;
         --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* The dark room: by system preference, or pinned explicitly with data-theme="dark". */
+    :root[data-theme='dark'] {
+        --paper: #17140f;
+        --panel: #201c15;
+        --panel-soft: #262117;
+        --kraft: #3a3122;
+        --kraft-soft: #2e2719;
+        --ink: #ece7dd;
+        --ink-soft: #b3a890;
+        --ink-faint: #8d8166;
+        --oxide: #d05a40;
+        --oxide-deep: #e07a62;
+        --oxide-wash: rgba(208, 90, 64, 0.14);
+        --moss: #86b584;
+        --moss-wash: rgba(134, 181, 132, 0.14);
+        --line: #3d382e;
+        --line-strong: #52493a;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+        --shadow-lift: 0 6px 18px rgba(0, 0, 0, 0.55);
     }
 
     @media (prefers-color-scheme: dark) {
@@ -439,16 +460,55 @@
         font-variant-numeric: tabular-nums;
     }
 
-    /* Folder cards read as kraft folder tabs. */
+    /* Folder cards read as kraft folder tabs: a die-cut tab shoulder over the kraft face. */
     .fx-folder {
         background: var(--kraft-soft);
     }
 
     .fx-folder .fx-card-face {
+        position: relative;
         background: var(--kraft);
         border-bottom-color: color-mix(in srgb, var(--kraft) 70%, var(--ink) 12%);
         color: var(--ink-soft);
         aspect-ratio: 5 / 2.1;
+    }
+
+    .fx-folder .fx-card-face::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 38%;
+        height: 13px;
+        background: color-mix(in srgb, var(--kraft) 85%, var(--ink) 15%);
+        border-radius: 0 0 8px 0;
+    }
+
+    @media (max-width: 480px) {
+        .fx-folder .fx-card-face {
+            aspect-ratio: auto;
+            height: 100px;
+        }
+    }
+
+    /* Selection chrome stays out of the way until it is wanted: the checkbox chip shows on
+       hover/focus, when checked, once any selection exists — and always on touch screens. */
+    .fx-card-check {
+        opacity: 0;
+        transition: opacity 120ms var(--ease-out);
+    }
+
+    .fx-card:hover .fx-card-check,
+    .fx-card:focus-within .fx-card-check,
+    .fx-card-check:has(input:checked),
+    .fx-shelf:has(input:checked) .fx-card-check {
+        opacity: 1;
+    }
+
+    @media (hover: none) {
+        .fx-card-check {
+            opacity: 1;
+        }
     }
 
     /* ---- The register (list) --------------------------------------------- */

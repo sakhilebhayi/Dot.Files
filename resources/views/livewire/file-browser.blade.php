@@ -173,7 +173,7 @@
         <ul class="fx-shelf" role="list">
             @foreach ($this->results as $child)
                 <li class="fx-card @if ($child->objectable_type === 'folder') fx-folder @endif" wire:key="card-{{ $child->id }}">
-                    <label class="absolute top-2 left-2 z-10 p-1.5 rounded" style="background: color-mix(in srgb, var(--panel) 75%, transparent);">
+                    <label class="fx-card-check absolute top-2 left-2 z-10 p-1.5 rounded" style="background: color-mix(in srgb, var(--panel) 75%, transparent);">
                         <input type="checkbox" class="fx-check" wire:model="selectedObjects" value="{{ $child->id }}"
                                aria-label="{{ __('Select') }} {{ $child->objectable->name }}">
                     </label>
