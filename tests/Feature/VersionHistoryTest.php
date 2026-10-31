@@ -125,4 +125,67 @@ class VersionHistoryTest extends TestCase
         $this->assertSame('docs', $v2->origin_platform);
         $this->assertSame('v1 by docs', Storage::disk('local')->get(FileVersion::where('file_id', $file->id)->where('version', 1)->value('path')));
     }
+
+    public function test_a_platform_update_on_a_stale_base_version_is_refused_not_overwritten(): void
+    {
+        config(['ecosystem.platform_secrets' => ['docs' => 'secret-docs']]);
+
+        $stored = $this->signed('store', ['name' => 'Minutes.txt', 'content_b64' => base64_encode('v1 by docs')])
+            ->assertCreated()->json();
+
+        // Building on version 1 while it is current: accepted, becomes version 2.
+        $this->signed('update', ['uuid' => $stored['uuid'], 'content_b64' => base64_encode('v2 by docs'), 'base_version' => 1])
+            ->assertOk()->assertJsonPath('version', 2);
+
+        // A second caller still holding version 1: refused with where the document now stands.
+        $conflict = $this->signed('update', ['uuid' => $stored['uuid'], 'content_b64' => base64_encode('rival edit'), 'base_version' => 1])
+            ->assertStatus(409)->json();
+        $this->assertSame('version_conflict', $conflict['error']);
+        $this->assertSame(2, $conflict['current_version']);
+        $this->assertSame(hash('sha256', 'v2 by docs'), $conflict['checksum']);
+
+        // Nothing was written: the trail still ends at 2 and the live content is untouched.
+        $file = File::withoutGlobalScopes()->where('uuid', $stored['uuid'])->firstOrFail();
+        $this->assertSame(2, FileVersion::where('file_id', $file->id)->max('version'));
+        $this->assertSame('v2 by docs', Storage::disk('local')->get($file->path));
+
+        // Without base_version the v1 contract stands: last write lands, trail keeps everything.
+        $this->signed('update', ['uuid' => $stored['uuid'], 'content_b64' => base64_encode('v3 by docs')])
+            ->assertOk()->assertJsonPath('version', 3);
+    }
+
+    public function test_the_web_replace_refuses_a_stale_base_version(): void
+    {
+        $this->actingAs($this->owner);
+        app(FileVersions::class)->replace($this->file, 'second draft', 'text/plain', $this->owner->id, null);
+
+        // The page was open at version 1; the document is now at 2.
+        $this->post('/files/'.$this->file->id.'/replace', [
+            'upload' => UploadedFile::fake()->createWithContent('Contract.txt', 'rival edit'),
+            'base_version' => 1,
+        ])->assertRedirect('/o/'.$this->file->uuid)->assertSessionHas('conflict');
+
+        $this->assertSame(2, FileVersion::where('file_id', $this->file->id)->max('version'));
+        $this->assertSame('second draft', Storage::disk('local')->get($this->file->refresh()->path));
+
+        // Replacing from the current version goes through.
+        $this->post('/files/'.$this->file->id.'/replace', [
+            'upload' => UploadedFile::fake()->createWithContent('Contract.txt', 'third draft'),
+            'base_version' => 2,
+        ])->assertRedirect('/o/'.$this->file->uuid)->assertSessionHas('status');
+        $this->assertSame(3, FileVersion::where('file_id', $this->file->id)->max('version'));
+    }
+
+    /** A signed docs-platform call against the file API. */
+    private function signed(string $endpoint, array $payload)
+    {
+        $body = json_encode(['team_uuid' => $this->acme->infodot_team_uuid] + $payload);
+        $ts = time();
+
+        return $this->call('POST', '/api/platform/files/'.$endpoint, [], [], [], [
+            'HTTP_X-DOT-PLATFORM' => 'docs', 'HTTP_X-DOT-TIMESTAMP' => (string) $ts,
+            'HTTP_X-DOT-SIGNATURE' => 'sha256='.hash_hmac('sha256', $ts.'.'.$body, 'secret-docs'),
+            'CONTENT_TYPE' => 'application/json',
+        ], $body);
+    }
 }

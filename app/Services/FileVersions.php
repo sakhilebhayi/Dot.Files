@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\VersionConflictException;
 use App\Models\File;
 use App\Models\FileVersion;
 use Illuminate\Http\UploadedFile;
@@ -49,16 +50,26 @@ class FileVersions
         }
     }
 
-    /** New content for an existing file: a new blob, a new version, the file row moved forward. */
-    public function replace(File $file, string $binary, ?string $mime, ?int $userId, ?string $platform, string $action = 'replaced', ?string $newName = null): FileVersion
+    /**
+     * New content for an existing file: a new blob, a new version, the file row moved forward.
+     *
+     * $expectedBase, when given, is the version the caller read before editing: if the trail
+     * has moved past it, the save is refused with a VersionConflictException before any blob
+     * or row is written (R-28 §31 — detect conflicts, never silently overwrite).
+     */
+    public function replace(File $file, string $binary, ?string $mime, ?int $userId, ?string $platform, string $action = 'replaced', ?string $newName = null, ?int $expectedBase = null): FileVersion
     {
         $this->ensureBaseline($file);
 
-        Storage::disk('local')->put($path = 'files/'.Str::random(40), $binary);
-
-        return DB::transaction(function () use ($file, $binary, $mime, $userId, $platform, $action, $newName, $path) {
+        return DB::transaction(function () use ($file, $binary, $mime, $userId, $platform, $action, $newName, $expectedBase) {
             // The trail itself is the authority on numbering — never an in-memory attribute.
             $next = ((int) FileVersion::where('file_id', $file->id)->max('version')) + 1;
+
+            if ($expectedBase !== null && $expectedBase !== $next - 1) {
+                throw new VersionConflictException($next - 1);
+            }
+
+            Storage::disk('local')->put($path = 'files/'.Str::random(40), $binary);
 
             $version = FileVersion::create([
                 'file_id' => $file->id,
@@ -100,9 +111,9 @@ class FileVersions
     }
 
     /** From an UploadedFile (the document page's "Replace content" flow). */
-    public function replaceFromUpload(File $file, UploadedFile $upload, ?int $userId): FileVersion
+    public function replaceFromUpload(File $file, UploadedFile $upload, ?int $userId, ?int $expectedBase = null): FileVersion
     {
-        return $this->replace($file, (string) $upload->get(), $upload->getMimeType(), $userId, null, 'replaced', basename($upload->getClientOriginalName()));
+        return $this->replace($file, (string) $upload->get(), $upload->getMimeType(), $userId, null, 'replaced', basename($upload->getClientOriginalName()), $expectedBase);
     }
 
     /**

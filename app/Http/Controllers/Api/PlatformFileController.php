@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\VersionConflictException;
 use App\Http\Controllers\Controller;
 use App\Models\File;
 use App\Models\Obj;
@@ -97,6 +98,7 @@ class PlatformFileController extends Controller
             'uuid' => ['required', 'uuid'],
             'content_b64' => ['required', 'string', 'max:'.(int) ceil(self::MAX_BYTES * 1.4)],
             'name' => ['nullable', 'string', 'max:255'],
+            'base_version' => ['nullable', 'integer', 'min:1'],
         ]);
 
         if ($error) {
@@ -122,7 +124,18 @@ class PlatformFileController extends Controller
         $name = isset($input['name']) ? $this->cleanName($input['name']) : null;
         $sniffed = (string) (new \finfo(FILEINFO_MIME_TYPE))->buffer($binary);
 
-        $version = $versions->replace($file, $binary, $sniffed ?: $file->mime, null, $platform, 'platform-update', $name ?: null);
+        try {
+            $version = $versions->replace($file, $binary, $sniffed ?: $file->mime, null, $platform, 'platform-update',
+                $name ?: null, isset($input['base_version']) ? (int) $input['base_version'] : null);
+        } catch (VersionConflictException $e) {
+            // The document moved on since the caller read it: refuse, hand back where it stands,
+            // and let the caller fetch + reconcile instead of overwriting (R-28 §31).
+            return response()->json([
+                'error' => 'version_conflict',
+                'current_version' => $e->currentVersion,
+                'checksum' => $file->refresh()->checksum,
+            ], 409);
+        }
 
         $this->record($platform, $team, (string) $file->uuid, 'updated');
 
