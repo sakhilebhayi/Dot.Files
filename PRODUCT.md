@@ -21,11 +21,12 @@ files per company, search, downloads, cross-company shares to named verified peo
 and revocation, an operator-approved deletion gate, InfoDot references on files.
 
 ## Positioning
-A sibling of InfoDot's "Yard": in the Yard's container language Files is the OXIDE-RED door. Its
-own identity is **the Archive Room** — the company's organised records room: warm paper ground,
-kraft-folder tones, oxide-red as the working accent, documents that look like documents. It must
-not resemble the dark control-room platforms (Memory, Central), the stock Jetstream look it
-replaces, or a generic SaaS drive clone.
+A premium, standalone-feeling file workspace that happens to be connected to the Dot ecosystem.
+Owner decision (2026-10-31, replacing the Archive Room world): Dot.Files executes the **category
+standard at full craft** — the clean minimal file product that sits alongside Linear, Dropbox
+and Apple. Distinction comes from exactness (hairlines, spacing rhythm, type discipline, one
+accent), never from world material, texture or costume. It must not resemble InfoDot's Yard,
+the dark control-room platforms, or the stock Jetstream look.
 
 ## Operating Context
 Laravel 12 + Livewire 3 + Tailwind 3 (Vite) on shared cPanel hosting; blobs on the local disk
@@ -41,9 +42,15 @@ work appear in the UI. No fabricated counts, activity or previews — every numb
 real query.
 
 ## Brand Commitments
-Name: Dot.Files. Type: Archivo (read), Big Shoulders Stencil Display strictly for references and
-big numerals (Yard kinship). Accent: oxide red. Light-first with an equal-quality dark room.
-Ecosystem logos in `resources/img` where provided; no invented marks.
+Name: Dot.Files. **Owner-chosen direction (2026-10-31, from four live boards; supersedes every
+earlier commitment that day): the Achromatic Ledger** — design-taste-frontend app sheet, seed
+2063257168. Blue-grey ledger ground (#f2f4f7), flat white surfaces separated by 1px rules with
+no shadow at rest, no colour in the chrome: a near-black primary, grey-pill secondary, figures
+set in ink with tabular numerals, the single data hue (#1d5fbf) reserved for the main data
+element. Geist for everything read; Geist Mono strictly for references and IDs; sentence case,
+no tracked capitals. Status pills in the sheet's positive/warning/neutral pairs. Dark theme is
+the same ledger at night (inverted white-pill primary, hue lifted). The real logo
+(public/images/logo.png) is the mark. The public landing page keeps its own separate system.
 
 ## Evidence on Hand
 Only the tenant's own data. No customer counts, testimonials or compliance claims exist and none

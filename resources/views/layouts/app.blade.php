@@ -8,10 +8,8 @@
         <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
         <title>Dot.Files</title>
 
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Big+Shoulders+Stencil+Display:wght@700;800&display=swap" rel="stylesheet">
-
+        {{-- Geist is self-hosted (public/fonts, declared in app.css): no font CDN dependency. --}}
+        <link rel="preload" href="{{ asset('fonts/geist-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
         @livewireStyles
@@ -37,7 +35,7 @@
             </main>
 
             <footer class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 text-sm" style="color: var(--ink-faint);">
-                Dot.Files — your company's records, in its own room. Every file here belongs to
+                Dot.Files — every file here belongs to
                 {{ auth()->user()?->currentTeam?->name ?? 'your company' }} and is visible to no other business.
             </footer>
         </div>

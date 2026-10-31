@@ -1,5 +1,5 @@
 @props(['name'])
-{{-- The Archive Room icon set: hand-authored, one stroke weight, round caps (DESIGN.md). --}}
+{{-- The Dot.Files icon set: hand-authored, one stroke weight, round caps (DESIGN.md). --}}
 <svg {{ $attributes->merge(['class' => 'w-[18px] h-[18px] shrink-0']) }} viewBox="0 0 24 24" fill="none"
      stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     @switch($name)

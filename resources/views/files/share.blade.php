@@ -40,8 +40,8 @@
                     </div>
                     <button type="submit" class="fx-btn fx-btn--oxide"><x-fx.icon name="share" /> {{ __('Send the request') }}</button>
                 </form>
-                @error('email')<p class="mt-2 text-sm" style="color: var(--oxide);">{{ $message }}</p>@enderror
-                @error('days')<p class="mt-2 text-sm" style="color: var(--oxide);">{{ $message }}</p>@enderror
+                @error('email')<p class="mt-2 text-sm" style="color: var(--danger);">{{ $message }}</p>@enderror
+                @error('days')<p class="mt-2 text-sm" style="color: var(--danger);">{{ $message }}</p>@enderror
 
                 <p class="mt-4 text-sm" style="color: var(--ink-soft);">
                     {{ __('They must sign in through InfoDot with that exact verified email, and they will see this one file only — never the folder, never the company.') }}

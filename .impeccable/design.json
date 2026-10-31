@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-31T00:00:00Z",
+  "title": "Design System: Dot.Files",
+  "extensions": {
+    "colorMeta": {
+      "paper": { "role": "neutral", "displayName": "Paper", "canonical": "#f2f4f7", "dark": "#121316", "tonalRamp": ["#15171a", "#2b2e33", "#44484f", "#5f646c", "#7c818a", "#9ba0a8", "#c3c7cd", "#f2f4f7"] },
+      "panel": { "role": "neutral", "displayName": "Panel", "canonical": "#ffffff", "dark": "#1a1c20", "tonalRamp": ["#1a1c20", "#2e3136", "#45484e", "#5e6268", "#7a7e84", "#999da2", "#c4c7cb", "#ffffff"] },
+      "panel-soft": { "role": "neutral", "displayName": "Panel Soft", "canonical": "#eef0f3", "dark": "#24262b", "tonalRamp": ["#17181b", "#2a2c30", "#404349", "#595d64", "#767a81", "#959aa1", "#bfc3c9", "#eef0f3"] },
+      "ink": { "role": "neutral", "displayName": "Ledger Ink (text)", "canonical": "#0a0a0a", "dark": "#f2f3f5", "tonalRamp": ["#0a0a0a", "#242424", "#3d3d3d", "#575757", "#737373", "#919191", "#bdbdbd", "#f2f2f2"] },
+      "ink-soft": { "role": "neutral", "displayName": "Ink Soft", "canonical": "#6b6b6b", "dark": "#a6a9ae", "tonalRamp": ["#1a1a1a", "#303030", "#474747", "#5e5e5e", "#6b6b6b", "#8d8d8d", "#b5b5b5", "#e3e3e3"] },
+      "oxide": { "role": "primary", "displayName": "Ledger Ink (primary action)", "canonical": "#141414", "dark": "#f2f3f5", "tonalRamp": ["#000000", "#141414", "#2e2e2e", "#4a4a4a", "#686868", "#8a8a8a", "#b3b3b3", "#e8e8e8"] },
+      "data": { "role": "secondary", "displayName": "Ledger Blue (the one data hue)", "canonical": "#1d5fbf", "dark": "#7ba4ec", "tonalRamp": ["#0c2448", "#133a74", "#1d5fbf", "#3b74cc", "#5c8bd9", "#7ba4ec", "#a6c2f3", "#d6e2fa"] },
+      "moss": { "role": "tertiary", "displayName": "Moss (positive status)", "canonical": "#2e7d32", "dark": "#67c77c", "tonalRamp": ["#04250e", "#123a1b", "#1f5726", "#2e7d32", "#4b9a52", "#67c77c", "#a8e8b4", "#dcfae5"] },
+      "amber": { "role": "tertiary", "displayName": "Amber (warning status)", "canonical": "#92400e", "dark": "#e5a93b", "tonalRamp": ["#2b2414", "#4a2e0a", "#6d360c", "#92400e", "#b56a1c", "#e5a93b", "#f3cf8a", "#fffbeb"] },
+      "danger": { "role": "tertiary", "displayName": "Danger Red (destructive only)", "canonical": "#c4242a", "dark": "#ff8a80", "tonalRamp": ["#3a0a0c", "#631216", "#941b20", "#c4242a", "#d9504f", "#ff8a80", "#ffb3ac", "#ffdcd8"] },
+      "line": { "role": "neutral", "displayName": "Rule (hairline)", "canonical": "#e6e6e6", "dark": "#26282d", "tonalRamp": ["#1c1c1c", "#333333", "#4d4d4d", "#696969", "#878787", "#a8a8a8", "#cccccc", "#e6e6e6"] },
+      "line-strong": { "role": "neutral", "displayName": "Rule Strong", "canonical": "#d4d4d4", "dark": "#393c42", "tonalRamp": ["#191919", "#2f2f2f", "#474747", "#616161", "#7d7d7d", "#9b9b9b", "#bababa", "#d4d4d4"] }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "Page, section and dialog titles; Geist 700, -0.01em." },
+      "tally": { "displayName": "Tally", "purpose": "The ledger figures in the company head; tabular numerals, 1.15rem under 640px." },
+      "body": { "displayName": "Body", "purpose": "Everything read: copy, controls, menus, table cells; 500 for controls/links, 700 only for current/selected." },
+      "label": { "displayName": "Label", "purpose": "Tally labels, table headers, stamps, card meta; sentence case, never uppercase or tracked." },
+      "ref": { "displayName": "Reference", "purpose": "Geist Mono strictly for references and IDs via .fx-ref; nowhere else." }
+    },
+    "shadows": [
+      { "name": "shadow", "value": "none", "purpose": "The token itself is none: no surface casts a shadow at rest, on hover, or raised." },
+      { "name": "shadow-lift", "value": "none", "purpose": "No lift state exists; depth is a 1px rule or one tone step." },
+      { "name": "focus-ring", "value": "0 0 0 3px rgba(20, 20, 20, 0.06)", "purpose": "Input focus halo (--oxide-wash) with the border turning ink; a ring, not elevation." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.23, 1, 0.32, 1)", "purpose": "The single easing for every transition and animation." },
+      { "name": "shelf-stagger", "value": "fx-reveal 260ms, 30ms per child, capped at 210ms delay", "purpose": "The staggered rise as the record shelf arrives; the flow's one deliberate motion moment." },
+      { "name": "reveal", "value": "fx-reveal 280ms both (8px rise + fade)", "purpose": "Single-panel arrival." },
+      { "name": "press", "value": "transform 160ms; :active scale(0.97)", "purpose": "Every button and the logo press under the pointer." },
+      { "name": "stamp-in", "value": "fx-stamp-in 160ms (scale 0.94 to 1 + fade)", "purpose": "A freshly changed status stamp (.fx-stamp--fresh)." },
+      { "name": "hover-transitions", "value": "120-140ms on background, border-color, color", "purpose": "Quiet state changes on buttons, cards, rows, links." },
+      { "name": "reduced-motion", "value": "prefers-reduced-motion: reduce kills all animation, transition and smooth scroll globally (0.01ms)", "purpose": "WCAG 2.3.3: people who ask for less motion get none." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px", "purpose": "Top bar collapses below; folder cards drop their face; register sheds columns; tallies shrink." },
+      { "name": "md", "value": "768px", "purpose": "Reference column appears in the register." },
+      { "name": "content-max", "value": "80rem (max-w-7xl)", "purpose": "The centered working column." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one main action per view (Upload documents): near-black fill, white text; dark theme inverts to a white pill.",
+      "html": "<button class=\"ds-btn ds-btn-oxide\">Upload documents</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: 36px; padding: 0.35rem 1rem; border-radius: 6px; border: 1px solid transparent; font-family: 'Geist', Inter, system-ui, sans-serif; font-weight: 500; font-size: 14px; cursor: pointer; transition: background 140ms cubic-bezier(0.23, 1, 0.32, 1), transform 160ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-btn:active { transform: scale(0.97); } .ds-btn-oxide { background: var(--oxide, #141414); border-color: var(--oxide, #141414); color: var(--oxide-ink, #ffffff); } .ds-btn-oxide:hover { background: var(--oxide-deep, #000000); border-color: var(--oxide-deep, #000000); } .ds-btn:focus-visible { outline: 2px solid var(--ink, #0a0a0a); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary button (grey pill)",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Everything that is not the main action: grey pill on panel-soft, hover steps one tone.",
+      "html": "<button class=\"ds-btn-grey\">New folder</button>",
+      "css": ".ds-btn-grey { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: 36px; padding: 0.35rem 1rem; border-radius: 6px; border: 1px solid transparent; background: var(--panel-soft, #eef0f3); color: var(--ink, #0a0a0a); font-family: 'Geist', Inter, system-ui, sans-serif; font-weight: 500; font-size: 14px; cursor: pointer; transition: background 140ms cubic-bezier(0.23, 1, 0.32, 1), transform 160ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-btn-grey:hover { background: var(--line, #e6e6e6); } .ds-btn-grey:active { transform: scale(0.97); } .ds-btn-grey:focus-visible { outline: 2px solid var(--ink, #0a0a0a); outline-offset: 2px; }"
+    },
+    {
+      "name": "Danger outline button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "The 'Request deletion' voice: red text and currentColor border on white; solid red is reserved for the final confirm.",
+      "html": "<button class=\"ds-btn-danger-outline\">Request deletion</button>",
+      "css": ".ds-btn-danger-outline { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: 36px; padding: 0.35rem 1rem; border-radius: 6px; background: var(--panel, #ffffff); color: var(--danger, #c4242a); border: 1px solid currentColor; font-family: 'Geist', Inter, system-ui, sans-serif; font-weight: 500; font-size: 14px; cursor: pointer; transition: background 140ms cubic-bezier(0.23, 1, 0.32, 1), transform 160ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-btn-danger-outline:hover { background: var(--panel-soft, #eef0f3); } .ds-btn-danger-outline:active { transform: scale(0.97); }"
+    },
+    {
+      "name": "Search input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "White field, strong hairline border; focus turns the border ink and adds a 3px wash ring.",
+      "html": "<input class=\"ds-input\" type=\"search\" placeholder=\"Search this company’s records — press /\">",
+      "css": ".ds-input { min-height: 36px; padding: 0.35rem 0.75rem; border-radius: 6px; border: 1px solid var(--line-strong, #d4d4d4); background: var(--panel, #ffffff); color: var(--ink, #0a0a0a); font-family: 'Geist', Inter, system-ui, sans-serif; font-size: 14px; width: 100%; transition: border-color 140ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 140ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-input::placeholder { color: var(--ink-faint, #6f6f6f); } .ds-input:focus { outline: none; border-color: var(--ink, #0a0a0a); box-shadow: 0 0 0 3px var(--oxide-wash, rgba(20, 20, 20, 0.06)); }"
+    },
+    {
+      "name": "Top bar",
+      "kind": "nav",
+      "refersTo": "button-quiet",
+      "description": "48px bar on the page ground, no border: logo left, plain grey text links, current page in ink 700.",
+      "html": "<nav class=\"ds-top\"><span class=\"ds-plate\">D</span><a class=\"ds-top-link\" aria-current=\"page\" href=\"#\">Files</a><a class=\"ds-top-link\" href=\"#\">Shared with me</a><a class=\"ds-top-link\" href=\"#\">Sharing approvals</a><a class=\"ds-top-link\" href=\"#\">Trash</a></nav>",
+      "css": ".ds-top { display: flex; align-items: center; gap: 0.75rem; height: 48px; background: var(--paper, #f2f4f7); color: var(--ink, #0a0a0a); font-family: 'Geist', Inter, system-ui, sans-serif; } .ds-plate { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 4px; background: var(--oxide, #141414); color: var(--oxide-ink, #ffffff); font-weight: 700; font-size: 0.8rem; line-height: 1; } .ds-top-link { color: var(--ink-soft, #6b6b6b); font-size: 14px; font-weight: 500; padding: 0.4rem 0.55rem; border-radius: 4px; text-decoration: none; transition: color 140ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-top-link:hover { color: var(--ink, #0a0a0a); } .ds-top-link[aria-current='page'] { color: var(--ink, #0a0a0a); font-weight: 700; }"
+    },
+    {
+      "name": "Status stamps",
+      "kind": "chip",
+      "refersTo": "stamp-active",
+      "description": "The three status pills: pending (amber), active (moss), ended (grey) — the only tinted chrome besides the data hue and danger.",
+      "html": "<span class=\"ds-stamp ds-stamp-pending\">Pending</span> <span class=\"ds-stamp ds-stamp-active\">Active</span> <span class=\"ds-stamp ds-stamp-ended\">Ended</span>",
+      "css": ".ds-stamp { display: inline-flex; align-items: center; gap: 0.3rem; font-family: 'Geist', Inter, system-ui, sans-serif; font-size: 12px; font-weight: 500; line-height: 1; padding: 0.28rem 0.6rem; border-radius: 999px; margin-right: 0.4rem; } .ds-stamp-pending { color: var(--amber, #92400e); background: var(--amber-wash, #fffbeb); } .ds-stamp-active { color: var(--moss-ink, #04250e); background: var(--moss-wash, #dcfae5); } .ds-stamp-ended { color: var(--ink-soft, #6b6b6b); background: var(--panel-soft, #eef0f3); }"
+    },
+    {
+      "name": "Reference chip",
+      "kind": "chip",
+      "refersTo": "ref-chip",
+      "description": "The copyable signature detail: an InfoDot reference in Geist Mono, the only place the mono face appears.",
+      "html": "<span class=\"ds-ref\">INF-2026-004317</span>",
+      "css": ".ds-ref { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink-soft, #6b6b6b); background: var(--panel-soft, #eef0f3); border-radius: 4px; padding: 0.1rem 0.4rem; white-space: nowrap; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Record card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A document as a document: snapshot face on panel-soft, title, tabular meta; hover only strengthens the hairline.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-card-face\"><svg width=\"36\" height=\"36\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 3.5h8l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19V3.5Z\"/><path d=\"M14 3.5V8h4\"/><path d=\"M9 12h6M9 15h6\"/></svg></div><div class=\"ds-card-body\"><p class=\"ds-card-title\">Lease agreement 2026 signed.pdf</p><p class=\"ds-card-meta\">PDF · 1.2 MB · 30 Oct 2026</p></div></article>",
+      "css": ".ds-card { display: flex; flex-direction: column; width: 212px; background: var(--panel, #ffffff); border: 1px solid var(--line, #e6e6e6); border-radius: 8px; overflow: clip; font-family: 'Geist', Inter, system-ui, sans-serif; transition: border-color 140ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-card:hover { border-color: var(--line-strong, #d4d4d4); } .ds-card-face { aspect-ratio: 5 / 3.3; background: var(--panel-soft, #eef0f3); border-bottom: 1px solid var(--line, #e6e6e6); display: grid; place-items: center; color: var(--ink-faint, #6f6f6f); } .ds-card-body { padding: 0.6rem 0.75rem 0.65rem; display: flex; flex-direction: column; gap: 0.2rem; } .ds-card-title { font-weight: 500; font-size: 14px; line-height: 1.35; margin: 0; } .ds-card-meta { font-size: 12px; color: var(--ink-soft, #6b6b6b); font-variant-numeric: tabular-nums; margin: 0; }"
+    },
+    {
+      "name": "Company tallies",
+      "kind": "custom",
+      "refersTo": "ref-chip",
+      "description": "The ledger figures: tabular 1.5rem/500 numbers over 12px grey labels; the 'shared outside' tally alone takes the data hue when non-zero.",
+      "html": "<div class=\"ds-tallies\"><div><p class=\"ds-tally\">128</p><p class=\"ds-tally-label\">documents</p></div><div><p class=\"ds-tally\">14</p><p class=\"ds-tally-label\">folders</p></div><div><p class=\"ds-tally\">2.1 GB</p><p class=\"ds-tally-label\">on file</p></div><div><p class=\"ds-tally ds-tally-data\">3</p><p class=\"ds-tally-label\">shared outside</p></div></div>",
+      "css": ".ds-tallies { display: flex; gap: 1.5rem; font-family: 'Geist', Inter, system-ui, sans-serif; } .ds-tally { font-weight: 500; font-size: 1.5rem; line-height: 1.15; color: var(--ink, #0a0a0a); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; margin: 0; } .ds-tally-data { color: var(--data, #1d5fbf); } .ds-tally-label { font-size: 12px; color: var(--ink-soft, #6b6b6b); margin: 0; }"
+    },
+    {
+      "name": "Register row",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "The list idiom: 44px hairline-ruled rows, tabular figures, no zebra; hover is one tone step.",
+      "html": "<table class=\"ds-register\"><thead><tr><th>Record</th><th>Kind</th><th>Size</th><th>Filed</th></tr></thead><tbody><tr><td>Lease agreement 2026 signed.pdf</td><td>PDF</td><td>1.2 MB</td><td>30 Oct 2026</td></tr><tr><td>Board minutes Q3</td><td>Document</td><td>84 KB</td><td>12 Oct 2026</td></tr></tbody></table>",
+      "css": ".ds-register { width: 100%; border-collapse: collapse; font-family: 'Geist', Inter, system-ui, sans-serif; font-variant-numeric: tabular-nums; font-size: 14px; color: var(--ink, #0a0a0a); } .ds-register th { text-align: left; font-size: 12px; font-weight: 400; color: var(--ink-soft, #6b6b6b); padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--line, #e6e6e6); } .ds-register td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--line, #e6e6e6); vertical-align: middle; height: 44px; } .ds-register tbody tr { transition: background 120ms cubic-bezier(0.23, 1, 0.32, 1); } .ds-register tbody tr:hover { background: var(--kraft-soft, #f6f7f9); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Achromatic Ledger",
+    "overview": "A business ledger as working software. The chrome carries no colour at all: ink on a blue-grey paper ground, one near-black primary action, a grey-pill secondary, figures set with tabular numerals like entries in well-kept books. The single data hue (#1d5fbf) exists for exactly one job — marking the screen's main data element — and nothing else. Distinction comes from exactness — hairlines, spacing rhythm, type discipline, one accent — never from world material, texture or costume. Surfaces are flat; separation is a 1px rule or one tone step, never a shadow at rest. Sentence case everywhere, no tracked capitals. The dark theme is the same ledger at night: the primary inverts to a white pill with ink text, the data hue lifts to #7ba4ec, the flat discipline holds.",
+    "keyCharacteristics": [
+      "No colour anywhere in the chrome; the one accent is near-black.",
+      "One data hue with exactly one consumer.",
+      "Flat surfaces, 1px rules, zero shadow at rest (--shadow: none is a token).",
+      "Geist everywhere read; Geist Mono strictly for references and IDs.",
+      "Tabular numerals on everything that counts; sentence case throughout.",
+      "Every number on screen is a real query — nothing fabricated."
+    ],
+    "rules": [
+      { "name": "The One Hue Rule", "body": "The data hue (#1d5fbf / dark #7ba4ec) marks only the screen's main data element — today, the non-zero \"shared outside\" tally. It never touches a button, a link, a nav item, or an icon. A second consumer needs an owner decision, not a precedent.", "section": "colors" },
+      { "name": "The Achromatic Chrome Rule", "body": "Buttons, navigation, inputs, borders and text are ink and grey only. The only tinted elements besides the data hue are the status stamp/notice pairs (moss/amber/danger), and they stay inside pills, notes and destructive controls.", "section": "colors" },
+      { "name": "The Sentence Case Rule", "body": "Sentence case everywhere; no tracked capitals, no uppercase labels anywhere in the product. Even table headers are 12px lowercase-led grey text.", "section": "typography" },
+      { "name": "The Mono-For-References Rule", "body": "Geist Mono appears only inside .fx-ref — references and IDs. Never paragraphs, never labels, never numerals outside a reference.", "section": "typography" },
+      { "name": "The Tabular Figures Rule", "body": "font-variant-numeric: tabular-nums on every element that counts: tallies, card meta, the register, references, selection counts.", "section": "typography" },
+      { "name": "The No-Shadow Rule", "body": "Nothing casts a shadow at rest, on hover, or when raised. If a surface needs separation, give it a 1px --line rule or move it one tone step.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the chrome achromatic: ink (#0a0a0a), greys, and the near-black primary (#141414) are the entire action palette.",
+      "Do reserve #1d5fbf (dark #7ba4ec) for the main data element only — today that is the non-zero \"shared outside\" tally via .fx-tally--data.",
+      "Do separate surfaces with a 1px #e6e6e6 rule or one tone step; --shadow stays none.",
+      "Do set every figure tabular, and every reference or ID in Geist Mono inside .fx-ref.",
+      "Do build new UI from the fx- component layer and the :root tokens; both themes come free, and Tailwind utilities handle layout only.",
+      "Do give every flow exactly one deliberate motion moment (shelf stagger, stamp-in, press), and let reduced-motion remove all of it."
+    ],
+    "donts": [
+      "Don't put colour on a button, link, nav item or icon — not the data hue, not a brand hue. Moss/amber/red exist only inside stamps, notes and destructive controls.",
+      "Don't add shadows, gradients, textures or costume anywhere; distinction is exactness, not material.",
+      "Don't use uppercase or letter-spaced labels; sentence case everywhere, 700 weight only for headings and the current/selected item.",
+      "Don't load fonts or type from a CDN in the product shell; Geist and Geist Mono are self-hosted in public/fonts.",
+      "Don't import the landing page's system (Fraunces/Work Sans/IBM Plex Mono, welcome.blade.php) into the product, or push the ledger onto the landing page — they are deliberately separate worlds.",
+      "Don't fabricate numbers, counts or previews to fill a layout; every figure on screen is a real query (PRODUCT.md)."
+    ]
+  }
+}

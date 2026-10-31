@@ -54,12 +54,12 @@
                                         </form>
                                         @if ($canPurge)
                                             <div x-data="{ confirming: false }">
-                                                <button type="button" class="fx-btn !min-h-[38px]" style="color: var(--oxide); border-color: var(--oxide);"
+                                                <button type="button" class="fx-btn fx-btn--danger-outline !min-h-[38px]"
                                                         @click="confirming = true">{{ __('Delete for good') }}</button>
 
                                                 <div x-cloak x-show="confirming" class="fixed inset-0 z-50 grid place-items-center p-4"
                                                      role="dialog" aria-modal="true" aria-label="{{ __('Delete for good') }}" @keydown.escape.window="confirming = false">
-                                                    <button type="button" class="absolute inset-0 w-full h-full" style="background: rgba(23, 20, 15, 0.55);"
+                                                    <button type="button" class="absolute inset-0 w-full h-full" style="background: rgba(16, 17, 20, 0.55);"
                                                             @click="confirming = false" aria-label="{{ __('Keep it') }}" tabindex="-1"></button>
                                                     <div class="fx-panel relative w-full max-w-md p-5 text-left">
                                                         <h2 class="font-bold text-lg">{{ __('Gone for good?') }}</h2>
@@ -70,7 +70,7 @@
                                                             <button type="button" class="fx-btn" @click="confirming = false">{{ __('Keep it') }}</button>
                                                             <form method="POST" action="{{ route('trash.destroy', $item) }}">
                                                                 @csrf
-                                                                <button type="submit" class="fx-btn fx-btn--oxide">{{ __('Delete for good') }}</button>
+                                                                <button type="submit" class="fx-btn fx-btn--danger">{{ __("Delete for good") }}</button>
                                                             </form>
                                                         </div>
                                                     </div>

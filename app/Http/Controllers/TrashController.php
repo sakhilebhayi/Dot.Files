@@ -46,7 +46,7 @@ class TrashController extends Controller
 
         $obj->restore();
 
-        return redirect()->route('trash')->with('status', ($obj->objectable->name ?? 'The record').' is back on the shelf.');
+        return redirect()->route('trash')->with('status', ($obj->objectable->name ?? 'The record').' has been restored.');
     }
 
     public function destroy(Request $request, Obj $obj)

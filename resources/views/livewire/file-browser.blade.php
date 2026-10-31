@@ -34,6 +34,10 @@
                 <p class="fx-tally">{{ \App\Models\File::bytesForHumans($stats['bytes']) }}</p>
                 <p class="fx-tally-label">{{ __('on file') }}</p>
             </div>
+            <div>
+                <p class="fx-tally @if ($stats['shared'] > 0) fx-tally--data @endif">{{ number_format($stats['shared']) }}</p>
+                <p class="fx-tally-label">{{ __('shared outside') }}</p>
+            </div>
         </div>
 
         @if ($this->pendingShares > 0)
@@ -62,7 +66,7 @@
 
     {{-- Toolbar --}}
     <div class="flex flex-wrap items-center gap-2">
-        <label class="relative flex-grow min-w-[14rem]">
+        <label class="relative flex-grow min-w-[14rem] max-sm:w-full max-sm:min-w-0">
             <span class="sr-only">{{ __('Search this company’s records') }}</span>
             <span class="absolute left-3 top-1/2 -translate-y-1/2" style="color: var(--ink-faint);">
                 <x-fx.icon name="search" />
@@ -100,7 +104,7 @@
         <button type="button" class="fx-btn" wire:click="$set('creatingNewFolder', true)">
             <x-fx.icon name="folder" /> {{ __('New folder') }}
         </button>
-        <button type="button" class="fx-btn fx-btn--oxide" wire:click="$set('showingObjectloadForm', true)">
+        <button type="button" class="fx-btn fx-btn--oxide max-sm:w-full" wire:click="$set('showingObjectloadForm', true)">
             <x-fx.icon name="upload" /> {{ __('Upload documents') }}
         </button>
     </div>
@@ -119,11 +123,24 @@
                    wire:model="newFolderState.name" x-init="$el.focus()">
             <button type="submit" class="fx-btn fx-btn--oxide">{{ __('Create folder') }}</button>
             <button type="button" class="fx-btn" wire:click="$set('creatingNewFolder', false)">{{ __('Cancel') }}</button>
-            @error('newFolderState.name')<p class="w-full text-sm" style="color: var(--oxide);">{{ $message }}</p>@enderror
+            @error('newFolderState.name')<p class="w-full text-sm" style="color: var(--danger);">{{ $message }}</p>@enderror
         </form>
     @endif
 
-    {{-- Path / search strip + selection actions --}}
+    {{-- Selection: a quiet action bar the moment anything is selected. --}}
+    @if (count($selectedObjects) > 0)
+        <div class="fx-panel flex flex-wrap items-center gap-2 px-3 py-2" role="toolbar" aria-label="{{ __('Selection actions') }}">
+            <p class="text-sm font-medium flex-grow" style="font-variant-numeric: tabular-nums;">
+                {{ trans_choice(':count item selected|:count items selected', count($selectedObjects), ['count' => count($selectedObjects)]) }}
+            </p>
+            <button type="button" class="fx-btn fx-btn--quiet" wire:click="$set('selectedObjects', [])">{{ __('Clear') }}</button>
+            <button type="button" class="fx-btn fx-btn--danger-outline !min-h-[36px]" wire:click="requestBulkDeletion">
+                {{ __('Request deletion') }}
+            </button>
+        </div>
+    @endif
+
+    {{-- Path / search strip --}}
     <div class="flex flex-wrap items-center gap-2">
         <nav class="fx-crumbs flex-grow" aria-label="{{ __('Folder path') }}">
             @if ($this->query)
@@ -144,13 +161,6 @@
             @endif
         </nav>
 
-        @if (count($selectedObjects) > 0)
-            <button type="button" class="fx-btn" style="color: var(--oxide); border-color: var(--oxide);"
-                    wire:click="requestBulkDeletion">
-                <x-fx.icon name="x" />
-                {{ trans_choice('Request deletion of :count item|Request deletion of :count items', count($selectedObjects), ['count' => count($selectedObjects)]) }}
-            </button>
-        @endif
     </div>
 
     {{-- The records --}}
@@ -163,7 +173,7 @@
                 <button type="button" class="fx-btn" wire:click="$set('query', null)">{{ __('Clear search') }}</button>
             @else
                 <p class="font-semibold">{{ __('Nothing is filed here yet.') }}</p>
-                <p class="text-sm">{{ __('Documents you upload appear on this shelf, snapshot first, and only your company can see them.') }}</p>
+                <p class="text-sm">{{ __('Documents you upload appear here, snapshot first, and only your company can see them.') }}</p>
                 <button type="button" class="fx-btn fx-btn--oxide" wire:click="$set('showingObjectloadForm', true)">
                     <x-fx.icon name="upload" /> {{ __('Upload the first document') }}
                 </button>
@@ -174,7 +184,7 @@
             @foreach ($this->results as $child)
                 <li class="fx-card @if ($child->objectable_type === 'folder') fx-folder @endif" wire:key="card-{{ $child->id }}">
                     <label class="fx-card-check absolute top-2 left-2 z-10 p-1.5 rounded" style="background: color-mix(in srgb, var(--panel) 75%, transparent);">
-                        <input type="checkbox" class="fx-check" wire:model="selectedObjects" value="{{ $child->id }}"
+                        <input type="checkbox" class="fx-check" wire:model.live="selectedObjects" value="{{ $child->id }}"
                                aria-label="{{ __('Select') }} {{ $child->objectable->name }}">
                     </label>
 
@@ -202,7 +212,9 @@
                             </form>
                         @else
                             @if ($child->objectable_type === 'folder')
-                                <a href="{{ route('files', ['uuid' => $child->uuid]) }}" class="fx-card-title">{{ $child->objectable->name }}</a>
+                                <a href="{{ route('files', ['uuid' => $child->uuid]) }}" class="fx-card-title">
+                                    <span class="sm:hidden inline-block align-[-3px] mr-1" style="color: var(--ink-soft);"><x-fx.icon name="folder" class="w-4 h-4 inline" /></span>{{ $child->objectable->name }}
+                                </a>
                                 <p class="fx-card-meta">{{ __('Folder') }} · {{ $child->created_at->format('j M Y') }}</p>
                             @else
                                 <a href="{{ route('files.open', $child->objectable->uuid) }}" class="fx-card-title">{{ $child->objectable->name }}</a>
@@ -266,7 +278,7 @@
                     @foreach ($this->results as $child)
                         <tr wire:key="row-{{ $child->id }}">
                             <td>
-                                <input type="checkbox" class="fx-check" wire:model="selectedObjects" value="{{ $child->id }}"
+                                <input type="checkbox" class="fx-check" wire:model.live="selectedObjects" value="{{ $child->id }}"
                                        aria-label="{{ __('Select') }} {{ $child->objectable->name }}">
                             </td>
                             <td>
@@ -338,16 +350,16 @@
     {{-- Delete confirmation --}}
     @if ($confirmingObjectDeletion)
         <div class="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true" aria-label="{{ __('Confirm deletion') }}">
-            <button type="button" class="absolute inset-0 w-full h-full" style="background: rgba(23, 20, 15, 0.55);"
+            <button type="button" class="absolute inset-0 w-full h-full" style="background: rgba(16, 17, 20, 0.55);"
                     wire:click="$set('confirmingObjectDeletion', null)" aria-label="{{ __('Cancel') }}" tabindex="-1"></button>
             <div class="fx-panel relative w-full max-w-md p-5">
-                <h2 class="font-bold text-lg">{{ __('Take this off the record?') }}</h2>
+                <h2 class="font-bold text-lg">{{ __('Delete this item?') }}</h2>
                 <p class="mt-2 text-sm" style="color: var(--ink-soft);">
                     {{ __('A file or an empty folder is removed at once, and anyone it was shared with loses access. A folder that still holds records goes to a platform operator for approval first.') }}
                 </p>
                 <div class="mt-4 flex justify-end gap-2">
                     <button type="button" class="fx-btn" wire:click="$set('confirmingObjectDeletion', null)">{{ __('Keep it') }}</button>
-                    <button type="button" class="fx-btn fx-btn--oxide" wire:click="deleteObject" wire:loading.attr="disabled">{{ __('Delete') }}</button>
+                    <button type="button" class="fx-btn fx-btn--danger" wire:click="deleteObject" wire:loading.attr="disabled">{{ __('Delete') }}</button>
                 </div>
             </div>
         </div>
@@ -357,7 +369,7 @@
     <div x-data="{ show: $wire.entangle('showingObjectloadForm') }" x-cloak x-show="show"
          class="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true" aria-label="{{ __('Upload documents') }}"
          @keydown.escape.window="show = false">
-        <button type="button" class="absolute inset-0 w-full h-full" style="background: rgba(23, 20, 15, 0.55);"
+        <button type="button" class="absolute inset-0 w-full h-full" style="background: rgba(16, 17, 20, 0.55);"
                 @click="show = false" aria-label="{{ __('Close') }}" tabindex="-1"></button>
         <div class="fx-panel relative w-full max-w-lg p-5">
             <h2 class="font-bold text-lg">{{ __('File documents into') }} {{ $this->query ? $team?->name : ($ancestors->last()?->objectable?->name ?? $team?->name) }}</h2>
@@ -393,7 +405,7 @@
                     <input id="filepond" type="file" x-ref="filepond" multiple>
                 </div>
             </div>
-            @error('upload')<p class="mt-2 text-sm" style="color: var(--oxide);">{{ $message }}</p>@enderror
+            @error('upload')<p class="mt-2 text-sm" style="color: var(--danger);">{{ $message }}</p>@enderror
             <div class="mt-4 flex justify-end">
                 <button type="button" class="fx-btn" @click="show = false">{{ __('Done') }}</button>
             </div>
