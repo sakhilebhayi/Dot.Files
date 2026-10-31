@@ -148,6 +148,12 @@ jobs:
             fi
             echo "== asset ok: /build/$asset"
           done
+
+          # Walk the snapshot backlog with the site already up: files uploaded while the
+          # pipeline was missing (or a capability was) stay `pending` forever otherwise.
+          # Best-effort — a hiccup here must not mark a healthy deploy red.
+          $PHP artisan files:previews || echo "::warning::files:previews did not finish; run previews.yml by hand."
+
           echo "== Deployed: $(git rev-parse --short HEAD)"
           DEPLOY
 
