@@ -8,11 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BulkDeletionRequest extends Model
 {
     protected $fillable = [
-        'team_id', 'requested_by', 'object_ids', 'status', 'rejected_reason', 'reviewed_by', 'reviewed_at',
+        'team_id', 'requested_by', 'object_ids', 'object_names', 'status', 'rejected_reason', 'reviewed_by', 'reviewed_at',
     ];
 
     protected $casts = [
         'object_ids' => 'array',
+        'object_names' => 'array',
         'reviewed_at' => 'datetime',
     ];
 

@@ -101,6 +101,24 @@ class FileBrowser extends Component
         // must belong to the company the person is acting for.
         abort_unless($obj->team_id === $this->resolveCurrentTeam()?->id, 403);
 
+        // Deleting an Obj cascades to every descendant and unlinks each blob, so "single delete"
+        // is only truly single for a file or an empty folder. The team's ROOT is never deletable
+        // here (that is the team-deletion flow), and a folder that still has children goes through
+        // the operator-approved bulk gate instead of vanishing on one click (R-25).
+        abort_if($obj->parent_id === null, 403, 'The root folder cannot be deleted.');
+
+        if ($obj->objectable_type === 'folder' && $obj->children()->exists()) {
+            BulkDeletionRequest::create([
+                'team_id' => $obj->team_id,
+                'requested_by' => auth()->id(),
+                'object_ids' => [$obj->id],
+                'object_names' => [$obj->objectable->name ?? ''],
+            ]);
+            $this->bulkDeletionRequested = true;
+
+            return;
+        }
+
         $obj->delete();
         $this->object = $this->object->fresh();
     }
@@ -121,10 +139,23 @@ class FileBrowser extends Component
             abort(403, 'No active team selected.');
         }
 
+        // The selection is client-controlled: keep only numeric ids that really belong to this
+        // team, and snapshot the names so the operator approves something legible, not bare ids.
+        $objects = Obj::with('objectable')
+            ->whereIn('id', array_filter(array_values($this->selectedObjects), 'is_numeric'))
+            ->where('team_id', $team->id)->get();
+
+        if ($objects->isEmpty()) {
+            $this->selectedObjects = [];
+
+            return;
+        }
+
         BulkDeletionRequest::create([
             'team_id' => $team->id,
             'requested_by' => auth()->id(),
-            'object_ids' => array_values($this->selectedObjects),
+            'object_ids' => $objects->pluck('id')->all(),
+            'object_names' => $objects->map(fn ($o) => (string) ($o->objectable->name ?? ''))->all(),
         ]);
 
         $this->selectedObjects = [];
@@ -179,7 +210,11 @@ class FileBrowser extends Component
             return;
         }
 
-        $obj->objectable->update($this->renamingObjectState);
+        // $renamingObjectState is a public Livewire property, so the CLIENT controls its keys. A
+        // rename may change exactly one thing: the display name. Passing the whole array through
+        // update() would let a crafted payload rewrite fillable columns such as files.path or
+        // files.team_id — moving the row to another tenant or pointing it at another blob (R-25).
+        $obj->objectable->update(['name' => $this->renamingObjectState['name']]);
 
         $this->object = $this->object->fresh();
 

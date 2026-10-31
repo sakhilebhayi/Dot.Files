@@ -49,6 +49,18 @@ class DeleteUser implements DeletesUsers
      */
     protected function deleteTeams($user)
     {
+        // Deleting an account must not silently destroy a COMPANY's files: a company team the
+        // person owns may hold the business's records, and team deletion is an operator-approved
+        // flow (DeleteTeamForm), never a side effect. Ownership must be transferred, or the team's
+        // deletion approved, before the account can go (R-25).
+        $blocking = $user->ownedTeams->first(fn ($team) => ! $team->personal_team);
+
+        if ($blocking) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'password' => __('You still own the company ":team". Transfer its ownership or have its deletion approved before deleting your account.', ['team' => $blocking->name]),
+            ]);
+        }
+
         $user->teams()->detach();
 
         $user->ownedTeams->each(function ($team) {
