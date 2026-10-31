@@ -74,8 +74,12 @@ class FileSharingTest extends TestCase
         $this->assertFalse($this->service->canShare($this->editor, $this->file));
         $this->assertFalse($this->service->canShare($this->outsider, $this->file));
 
+        // R-26: a member who cannot share may still ASK — they get the request form, never
+        // the manage panel. Someone outside the company cannot even resolve the file.
         $this->editor->switchTeam($this->acme);
-        $this->actingAs($this->editor)->get('/files/'.$this->file->id.'/share')->assertForbidden();
+        $this->actingAs($this->editor)->get('/files/'.$this->file->id.'/share')
+            ->assertOk()->assertSee('Ask to share')->assertDontSee('Link to send them');
+        $this->actingAs($this->outsider)->get('/files/'.$this->file->id.'/share')->assertNotFound();
         $this->actingAs($this->owner)->get('/files/'.$this->file->id.'/share')->assertOk()->assertSee('Budget 2027.txt');
     }
 

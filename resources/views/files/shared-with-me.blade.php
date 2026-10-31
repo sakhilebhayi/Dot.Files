@@ -1,24 +1,40 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ __('Shared with me') }}</h2>
-    </x-slot>
-
-    <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
-                <p class="text-sm text-gray-600">{{ __('Files other companies have shared with you, matched to your verified email. Each one ends on its date or sooner if they remove it.') }}</p>
-                @forelse ($shares as $share)
-                    <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
-                        <div>
-                            <p class="font-medium text-gray-900 break-words">{{ $share->file->name }}</p>
-                            <p class="text-sm text-gray-500">{{ $share->file->sizeForHumans() }} &middot; {{ __('until') }} {{ $share->expires_at->format('j M Y') }}</p>
-                        </div>
-                        <a href="{{ route('shared.download', $share) }}" class="px-3 py-2 border border-gray-300 rounded-md text-xs font-semibold uppercase tracking-widest text-gray-700 hover:bg-gray-50">{{ __('Download') }}</a>
-                    </div>
-                @empty
-                    <p class="mt-4 text-sm text-gray-500">{{ __('Nothing is shared with you right now.') }}</p>
-                @endforelse
-            </div>
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+        <div>
+            <h1 class="text-xl font-bold">{{ __('Shared with me') }}</h1>
+            <p class="mt-1 text-sm" style="color: var(--ink-soft);">
+                {{ __('Files other companies have shared with you, matched to your verified email. Each one ends on its date, or sooner if they remove it.') }}
+            </p>
         </div>
+
+        @if ($shares->isEmpty())
+            <div class="fx-panel fx-empty">
+                <x-fx.icon name="share" class="w-10 h-10" style="color: var(--ink-faint);" />
+                <p class="font-semibold">{{ __('Nothing is shared with you right now.') }}</p>
+                <p class="text-sm">{{ __('When another company shares a file with your email, it appears here and in the link they send you.') }}</p>
+            </div>
+        @else
+            <ul class="fx-shelf" role="list">
+                @foreach ($shares as $share)
+                    <li class="fx-card" wire:key="share-{{ $share->id }}">
+                        <a href="{{ route('files.open', $share->file->uuid) }}" class="fx-card-face" tabindex="-1" aria-hidden="true">
+                            @if ($share->file->hasPreview())
+                                <img src="{{ route('shared.preview', $share) }}" alt="" loading="lazy">
+                            @else
+                                <x-fx.icon :name="$share->file->kind()" class="w-9 h-9" />
+                            @endif
+                        </a>
+                        <div class="fx-card-body">
+                            <a href="{{ route('files.open', $share->file->uuid) }}" class="fx-card-title">{{ $share->file->name }}</a>
+                            <p class="fx-card-meta">{{ $share->file->kindLabel() }} · {{ $share->file->sizeForHumans() }} · {{ __('until') }} {{ $share->expires_at->format('j M Y') }}</p>
+                            <div class="flex items-center justify-between gap-2 mt-1">
+                                <span class="fx-stamp fx-stamp--active">{{ __('Shared') }}</span>
+                                <a href="{{ route('shared.download', $share) }}" class="fx-btn fx-btn--quiet" title="{{ __('Download') }}"><x-fx.icon name="download" /><span class="sr-only">{{ __('Download') }}</span></a>
+                            </div>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
     </div>
 </x-app-layout>

@@ -114,13 +114,15 @@ class FileBrowserSecurityTest extends TestCase
         $this->assertDatabaseHas('bulk_deletion_requests', ['team_id' => $this->acme->id, 'status' => 'pending']);
         $this->assertSame(['Records'], BulkDeletionRequest::latest('id')->first()->object_names);
 
-        // An empty folder and a single file still delete instantly (the gate is for subtrees).
+        // An empty folder and a single file still leave on one click — into the TRASH (R-27):
+        // out of the browse queries at once, restorable for the holding window.
         $empty = $this->makeFolder('Empty');
         Livewire::actingAs($this->ann)
             ->test(FileBrowser::class, ['object' => $this->root(), 'ancestors' => collect([$this->root()])])
             ->set('confirmingObjectDeletion', $empty->id)
             ->call('deleteObject');
-        $this->assertNull(Obj::withoutGlobalScope('team')->find($empty->id));
+        $trashed = Obj::withoutGlobalScope('team')->find($empty->id);
+        $this->assertNotNull($trashed->trashed_at, 'one click parks it in the trash');
     }
 
     public function test_bulk_requests_keep_only_this_teams_numeric_ids_and_snapshot_names(): void

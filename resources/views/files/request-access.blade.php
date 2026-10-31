@@ -1,15 +1,12 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ __('Request access') }}</h2>
-    </x-slot>
-
-    <div class="py-12">
-        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-8">
-                <h1 class="text-2xl font-bold text-gray-900">{{ __('You are not in the company that owns this file') }}</h1>
-                <p class="mt-3 text-gray-600">{{ __('The link is real, but the file belongs to a company you have not joined, so it cannot be shown. Ask an owner or administrator of that company to add you in InfoDot, then open the link again.') }}</p>
-                <a href="{{ route('files') }}" class="mt-6 inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">{{ __('Back to my files') }}</a>
-            </div>
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="fx-panel p-8 text-center">
+            <x-fx.icon name="shield" class="w-10 h-10 mx-auto" style="color: var(--ink-faint);" />
+            <h1 class="mt-3 text-xl font-bold">{{ __('This file belongs to a company you have not joined') }}</h1>
+            <p class="mt-3" style="color: var(--ink-soft);">
+                {{ __('The link is real, but the record cannot be shown: a company’s files are visible only to its own people and to those its owners have approved. Ask an owner or administrator of that company to add you in InfoDot — or to share the file with your email — then open the link again.') }}
+            </p>
+            <a href="{{ route('files') }}" class="fx-btn fx-btn--oxide mt-6">{{ __('Back to my records') }}</a>
         </div>
     </div>
 </x-app-layout>

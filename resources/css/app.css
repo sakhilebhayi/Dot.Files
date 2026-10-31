@@ -3,6 +3,683 @@
 @tailwind utilities;
 
 /*
+ * The Archive Room — Dot.Files' design system (R-26).
+ *
+ * A company's records room: warm paper ground, kraft folder surfaces, oxide red as the working
+ * accent (Files' container colour in the ecosystem's Yard language). Archivo carries everything
+ * read; Big Shoulders Stencil Display is reserved for references, big tallies and the FILES
+ * plate. Tokens first, `fx-` components second; Tailwind utilities only for one-off layout.
+ */
+
+@layer base {
+    :root {
+        --paper: #efece6;
+        --panel: #fbfaf7;
+        --panel-soft: #f4f1e9;
+        --kraft: #d9c9a3;
+        --kraft-soft: #e8ddc2;
+        --ink: #231f18;
+        --ink-soft: #655d4d;
+        --ink-faint: #6f6454;
+        --oxide: #b3402a;
+        --oxide-deep: #8f2f1d;
+        --oxide-wash: rgba(179, 64, 42, 0.08);
+        --moss: #3e6b42;
+        --moss-wash: rgba(62, 107, 66, 0.1);
+        --line: #cdc6b8;
+        --line-strong: #b2a990;
+        --shadow: 0 2px 8px rgba(35, 31, 24, 0.1);
+        --shadow-lift: 0 6px 18px rgba(35, 31, 24, 0.14);
+        --font-body: 'Archivo', ui-sans-serif, system-ui, sans-serif;
+        --font-stencil: 'Big Shoulders Stencil Display', 'Archivo', sans-serif;
+        --r-panel: 10px;
+        --r-control: 6px;
+        --r-ref: 3px;
+        --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* The dark room: by system preference, or pinned explicitly with data-theme="dark". */
+    :root[data-theme='dark'] {
+        --paper: #17140f;
+        --panel: #201c15;
+        --panel-soft: #262117;
+        --kraft: #3a3122;
+        --kraft-soft: #2e2719;
+        --ink: #ece7dd;
+        --ink-soft: #b3a890;
+        --ink-faint: #8d8166;
+        --oxide: #d05a40;
+        --oxide-deep: #e07a62;
+        --oxide-wash: rgba(208, 90, 64, 0.14);
+        --moss: #86b584;
+        --moss-wash: rgba(134, 181, 132, 0.14);
+        --line: #3d382e;
+        --line-strong: #52493a;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+        --shadow-lift: 0 6px 18px rgba(0, 0, 0, 0.55);
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+            --paper: #17140f;
+            --panel: #201c15;
+            --panel-soft: #262117;
+            --kraft: #3a3122;
+            --kraft-soft: #2e2719;
+            --ink: #ece7dd;
+            --ink-soft: #b3a890;
+            --ink-faint: #8d8166;
+            --oxide: #d05a40;
+            --oxide-deep: #e07a62;
+            --oxide-wash: rgba(208, 90, 64, 0.14);
+            --moss: #86b584;
+            --moss-wash: rgba(134, 181, 132, 0.14);
+            --line: #3d382e;
+            --line-strong: #52493a;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+            --shadow-lift: 0 6px 18px rgba(0, 0, 0, 0.55);
+        }
+    }
+
+    html {
+        overflow-x: clip;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+
+    body {
+        overflow-x: clip;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--font-body);
+        font-size: 15.5px;
+        line-height: 1.55;
+        caret-color: var(--oxide);
+        accent-color: var(--oxide);
+    }
+
+    ::selection {
+        background: var(--oxide);
+        color: var(--panel);
+    }
+
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--line-strong) transparent;
+    }
+
+    *::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    *::-webkit-scrollbar-thumb {
+        background: var(--line-strong);
+        border-radius: 99px;
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--oxide);
+        outline-offset: 2px;
+        border-radius: var(--r-ref);
+    }
+
+    a {
+        text-underline-offset: 3px;
+    }
+}
+
+@layer components {
+    /* ---- Top bar -------------------------------------------------------- */
+
+    .fx-top {
+        background: var(--ink);
+        color: var(--paper);
+        border-bottom: 3px solid var(--oxide);
+    }
+
+    [data-theme='dark'] .fx-top,
+    .fx-top {
+        /* The bar is ink-dark in both rooms; its own tokens stay fixed. */
+        --bar-ink: #ece7dd;
+        --bar-faint: #a89d87;
+        background: #221d15;
+        color: var(--bar-ink);
+    }
+
+    .fx-plate {
+        font-family: var(--font-stencil);
+        font-weight: 800;
+        font-size: 1.05rem;
+        letter-spacing: 0.08em;
+        color: #f3ede2;
+        background: var(--oxide);
+        border-radius: var(--r-ref);
+        padding: 0.18rem 0.55rem 0.24rem;
+        line-height: 1;
+    }
+
+    .fx-top-link {
+        color: var(--bar-faint);
+        font-weight: 500;
+        padding: 0.35rem 0.6rem;
+        border-radius: var(--r-control);
+        transition: color 140ms var(--ease-out), background 140ms var(--ease-out);
+    }
+
+    .fx-top-link:hover {
+        color: var(--bar-ink);
+        background: rgba(236, 231, 221, 0.08);
+    }
+
+    .fx-top-link[aria-current='page'] {
+        color: var(--bar-ink);
+        box-shadow: inset 0 -2px 0 var(--oxide);
+        border-radius: var(--r-control) var(--r-control) 0 0;
+    }
+
+    /* ---- Panels and the room ------------------------------------------- */
+
+    .fx-panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--r-panel);
+        box-shadow: var(--shadow);
+    }
+
+    .fx-roomhead {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1rem 1.5rem;
+        padding: 1.1rem 1.4rem;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--r-panel);
+        box-shadow: var(--shadow);
+    }
+
+    .fx-initial {
+        display: grid;
+        place-items: center;
+        width: 46px;
+        height: 46px;
+        border-radius: var(--r-control);
+        background: var(--oxide);
+        color: #f3ede2;
+        font-family: var(--font-stencil);
+        font-weight: 800;
+        font-size: 1.45rem;
+        line-height: 1;
+    }
+
+    .fx-tally {
+        font-family: var(--font-stencil);
+        font-weight: 800;
+        font-size: 1.6rem;
+        line-height: 1;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .fx-tally-label {
+        font-size: 0.82rem;
+        color: var(--ink-soft);
+    }
+
+    /* ---- Reference & stamps --------------------------------------------- */
+
+    .fx-ref {
+        font-family: var(--font-stencil);
+        font-weight: 700;
+        font-size: 0.82rem;
+        letter-spacing: 0.1em;
+        color: var(--oxide);
+        background: var(--oxide-wash);
+        border-radius: var(--r-ref);
+        padding: 0.1rem 0.4rem 0.14rem;
+        white-space: nowrap;
+    }
+
+    .fx-stamp {
+        display: inline-block;
+        font-family: var(--font-stencil);
+        font-weight: 800;
+        font-size: 0.8rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        line-height: 1;
+        padding: 0.28rem 0.5rem;
+        border-radius: var(--r-ref);
+        border: 1.5px solid currentColor;
+        transform: rotate(-1.5deg);
+    }
+
+    .fx-stamp--pending {
+        color: var(--ink-soft);
+        background: var(--kraft-soft);
+    }
+
+    .fx-stamp--active {
+        color: var(--moss);
+        background: var(--moss-wash);
+    }
+
+    .fx-stamp--ended {
+        color: var(--oxide);
+        background: var(--oxide-wash);
+    }
+
+    /* The one authored moment on a document page: the snapshot settles onto the desk. */
+    @keyframes fx-reveal {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .fx-reveal {
+        animation: fx-reveal 320ms var(--ease-out) both;
+    }
+
+    @keyframes fx-stamp-in {
+        0% {
+            transform: rotate(-1.5deg) scale(1.4);
+            opacity: 0;
+        }
+        100% {
+            transform: rotate(-1.5deg) scale(1);
+            opacity: 1;
+        }
+    }
+
+    .fx-stamp--fresh {
+        animation: fx-stamp-in 260ms var(--ease-out) both;
+    }
+
+    /* ---- Controls -------------------------------------------------------- */
+
+    .fx-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        min-height: 44px;
+        padding: 0.45rem 1rem;
+        border-radius: var(--r-control);
+        border: 1px solid var(--line-strong);
+        background: var(--panel);
+        color: var(--ink);
+        font-weight: 500;
+        transition: border-color 140ms var(--ease-out), background 140ms var(--ease-out),
+            transform 140ms var(--ease-out);
+    }
+
+    .fx-btn:hover {
+        border-color: var(--ink-faint);
+        background: var(--panel-soft);
+    }
+
+    .fx-btn:active {
+        transform: translateY(1px);
+    }
+
+    .fx-btn:disabled {
+        opacity: 0.45;
+        pointer-events: none;
+    }
+
+    .fx-btn--oxide {
+        background: var(--oxide);
+        border-color: var(--oxide);
+        color: #f6f0e6;
+        font-weight: 600;
+    }
+
+    .fx-btn--oxide:hover {
+        background: var(--oxide-deep);
+        border-color: var(--oxide-deep);
+    }
+
+    .fx-btn--quiet {
+        border-color: transparent;
+        background: transparent;
+        color: var(--ink-soft);
+        min-height: 36px;
+        padding: 0.3rem 0.6rem;
+    }
+
+    .fx-btn--quiet:hover {
+        color: var(--ink);
+        background: var(--panel-soft);
+        border-color: transparent;
+    }
+
+    .fx-input,
+    .fx-select {
+        min-height: 44px;
+        padding: 0.45rem 0.8rem;
+        border-radius: var(--r-control);
+        border: 1px solid var(--line-strong);
+        background: var(--panel);
+        color: var(--ink);
+        width: 100%;
+    }
+
+    .fx-input::placeholder {
+        color: var(--ink-faint);
+    }
+
+    .fx-input:focus,
+    .fx-select:focus {
+        outline: 2px solid var(--oxide);
+        outline-offset: 0;
+        border-color: var(--oxide);
+    }
+
+    .fx-check {
+        width: 1.05rem;
+        height: 1.05rem;
+        border-radius: var(--r-ref);
+        border: 1.5px solid var(--line-strong);
+        color: var(--oxide);
+    }
+
+    /* ---- The shelf (grid) ------------------------------------------------ */
+
+    .fx-shelf {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+        gap: 0.9rem;
+    }
+
+    .fx-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--r-panel);
+        box-shadow: var(--shadow);
+        overflow: clip;
+        transition: transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out),
+            border-color 140ms var(--ease-out);
+    }
+
+    .fx-card:hover,
+    .fx-card:focus-within {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lift);
+        border-color: var(--line-strong);
+    }
+
+    .fx-card-face {
+        position: relative;
+        aspect-ratio: 5 / 3.5;
+        background: var(--panel-soft);
+        border-bottom: 1px solid var(--line);
+        display: grid;
+        place-items: center;
+        color: var(--ink-faint);
+    }
+
+    .fx-card-face img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top;
+    }
+
+    .fx-card-body {
+        padding: 0.65rem 0.8rem 0.7rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: 0;
+    }
+
+    .fx-card-title {
+        font-weight: 600;
+        line-height: 1.3;
+        overflow-wrap: break-word;
+        min-width: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .fx-card-meta {
+        font-size: 0.82rem;
+        color: var(--ink-soft);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Folder cards read as kraft folder tabs: a die-cut tab shoulder over the kraft face. */
+    .fx-folder {
+        background: var(--kraft-soft);
+    }
+
+    .fx-folder .fx-card-face {
+        position: relative;
+        background: var(--kraft);
+        border-bottom-color: color-mix(in srgb, var(--kraft) 70%, var(--ink) 12%);
+        color: var(--ink-soft);
+        aspect-ratio: 5 / 2.1;
+    }
+
+    .fx-folder .fx-card-face::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 38%;
+        height: 13px;
+        background: color-mix(in srgb, var(--kraft) 85%, var(--ink) 15%);
+        border-radius: 0 0 8px 0;
+    }
+
+    @media (max-width: 480px) {
+        .fx-folder .fx-card-face {
+            aspect-ratio: auto;
+            height: 100px;
+        }
+    }
+
+    /* Selection chrome stays out of the way until it is wanted: the checkbox chip shows on
+       hover/focus, when checked, once any selection exists — and always on touch screens. */
+    .fx-card-check {
+        opacity: 0;
+        transition: opacity 120ms var(--ease-out);
+    }
+
+    .fx-card:hover .fx-card-check,
+    .fx-card:focus-within .fx-card-check,
+    .fx-card-check:has(input:checked),
+    .fx-shelf:has(input:checked) .fx-card-check {
+        opacity: 1;
+    }
+
+    @media (hover: none) {
+        .fx-card-check {
+            opacity: 1;
+        }
+    }
+
+    /* ---- The register (list) --------------------------------------------- */
+
+    .fx-register {
+        width: 100%;
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .fx-register th {
+        text-align: left;
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: var(--ink-soft);
+        padding: 0.55rem 0.75rem;
+        border-bottom: 1px solid var(--line-strong);
+    }
+
+    .fx-register td {
+        padding: 0.55rem 0.75rem;
+        border-bottom: 1px solid var(--line);
+        vertical-align: middle;
+    }
+
+    .fx-register tbody tr {
+        transition: background 120ms var(--ease-out);
+    }
+
+    .fx-register tbody tr:hover {
+        background: var(--panel-soft);
+    }
+
+    /* ---- Upload tray ------------------------------------------------------ */
+
+    .fx-drop {
+        border: 2px dashed var(--line-strong);
+        border-radius: var(--r-panel);
+        background: var(--kraft-soft);
+        color: var(--ink-soft);
+        transition: border-color 140ms var(--ease-out), background 140ms var(--ease-out);
+    }
+
+    .fx-drop:hover,
+    .fx-drop.is-over {
+        border-color: var(--oxide);
+        background: var(--oxide-wash);
+        color: var(--ink);
+    }
+
+    /* FilePond takes the room's tokens. */
+    .filepond--root {
+        font-family: var(--font-body);
+        margin-bottom: 0;
+    }
+
+    .filepond--panel-root {
+        background: transparent;
+    }
+
+    .filepond--drop-label {
+        color: var(--ink-soft);
+    }
+
+    .filepond--label-action {
+        color: var(--oxide);
+        text-decoration-color: var(--oxide);
+    }
+
+    .filepond--item-panel {
+        background: var(--ink);
+    }
+
+    /* ---- Empty state ------------------------------------------------------ */
+
+    .fx-empty {
+        display: grid;
+        justify-items: center;
+        gap: 0.6rem;
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: var(--ink-soft);
+    }
+
+    /* ---- Menus (row actions) ---------------------------------------------- */
+
+    .fx-menu {
+        min-width: 11rem;
+        background: var(--panel);
+        border: 1px solid var(--line-strong);
+        border-radius: var(--r-control);
+        box-shadow: var(--shadow-lift);
+        padding: 0.3rem;
+        z-index: 40;
+    }
+
+    .fx-menu a,
+    .fx-menu button {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.45rem 0.6rem;
+        border-radius: var(--r-ref);
+        color: var(--ink);
+        font-size: 0.92rem;
+        text-align: left;
+    }
+
+    .fx-menu a:hover,
+    .fx-menu button:hover {
+        background: var(--panel-soft);
+    }
+
+    .fx-menu .fx-menu-danger {
+        color: var(--oxide);
+    }
+
+    /* ---- Crumbs ----------------------------------------------------------- */
+
+    .fx-crumbs {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.15rem;
+        font-size: 0.92rem;
+        color: var(--ink-soft);
+        min-width: 0;
+    }
+
+    .fx-crumbs a {
+        padding: 0.2rem 0.35rem;
+        border-radius: var(--r-ref);
+        font-weight: 500;
+        color: var(--ink-soft);
+    }
+
+    .fx-crumbs a:hover {
+        color: var(--ink);
+        background: var(--panel-soft);
+    }
+
+    .fx-crumbs a[aria-current='page'] {
+        color: var(--ink);
+        font-weight: 600;
+    }
+
+    /* ---- Notices ---------------------------------------------------------- */
+
+    .fx-note {
+        border: 1px solid var(--line-strong);
+        border-left: 1px solid var(--line-strong);
+        background: var(--kraft-soft);
+        color: var(--ink);
+        border-radius: var(--r-control);
+        padding: 0.7rem 0.9rem;
+        font-size: 0.95rem;
+    }
+
+    .fx-note--good {
+        background: var(--moss-wash);
+        border-color: var(--moss);
+    }
+
+    .fx-note--bad {
+        background: var(--oxide-wash);
+        border-color: var(--oxide);
+    }
+}
+
+/*
  * Reduced motion (WCAG 2.3.3): people who ask the system for less motion get none of it from
  * transitions, animations or smooth scrolling, whichever file or utility class declares them.
  */

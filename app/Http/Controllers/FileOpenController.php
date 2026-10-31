@@ -7,6 +7,8 @@ use App\Models\Obj;
 use App\Models\Team;
 use App\Services\FileShareService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -29,8 +31,9 @@ class FileOpenController extends Controller
         $user = $request->user();
 
         if (! $user->allTeams()->contains('id', $file->team_id)) {
-            // Outside the company: the only way in is a live share made out to this person's verified email.
-            $share = $shares->activeShareFor($user, $file);
+            // Outside the company: the only way in is a live share made out to this person's
+            // verified email — and a trashed file is off the record for outsiders (R-27).
+            $share = $file->isTrashed() ? null : $shares->activeShareFor($user, $file);
 
             if ($share === null) {
                 $shares->denied($file, $user);
@@ -47,12 +50,29 @@ class FileOpenController extends Controller
             $user->switchTeam(Team::findOrFail($file->team_id));
         }
 
-        $parent = Obj::where('objectable_type', 'file')->where('objectable_id', $file->id)->first()?->parent;
+        $obj = Obj::where('objectable_type', 'file')->where('objectable_id', $file->id)->first();
+        $parent = $obj?->parent;
+
+        // A short, harmless excerpt for plain-text documents: read server-side, escaped by
+        // Blade, never executed. Everything else renders inline or keeps its glyph.
+        $excerpt = null;
+
+        if (in_array($file->mime, ['text/plain', 'text/csv'], true) && Storage::disk('local')->exists($file->path)) {
+            $excerpt = (string) file_get_contents(Storage::disk('local')->path($file->path), false, null, 0, 2000);
+        }
 
         return view('files.open', [
             'file' => $file,
             'folderName' => $parent?->objectable?->name,
             'folderUuid' => $parent?->uuid,
+            'trashed' => (bool) $obj?->isTrashed(),
+            'pinned' => $file->isPinnedBy($user),
+            'uploader' => $file->uploader,
+            'excerpt' => $excerpt,
+            // The sharing trail is owner/admin reading: it names outside addresses.
+            'events' => $shares->canShare($user, $file)
+                ? DB::table('file_share_events')->where('file_uuid', (string) $file->uuid)->orderByDesc('id')->limit(6)->get()
+                : collect(),
         ]);
     }
 }

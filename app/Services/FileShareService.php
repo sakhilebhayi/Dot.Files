@@ -29,27 +29,23 @@ class FileShareService
         return $team !== null && ! $team->personal_team && ($user->ownsTeam($team) || $user->hasTeamRole($team, 'admin'));
     }
 
+    /**
+     * Any member of the file's company who cannot share directly may ASK for a share (R-26).
+     * The request grants nothing until an owner or administrator approves it.
+     */
+    public function canRequestShare(User $user, File $file): bool
+    {
+        $team = Team::find($file->team_id);
+
+        return $team !== null && ! $team->personal_team && $user->belongsToTeam($team) && ! $this->canShare($user, $file);
+    }
+
     public function share(User $by, File $file, string $email, int $days): FileShare
     {
         abort_unless($this->canShare($by, $file), 403);
 
-        $email = strtolower(trim($email));
+        $email = $this->normalisedEmail($by, $file, $email);
         $days = max(1, min($days, FileShare::MAX_DAYS));
-
-        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw ValidationException::withMessages(['email' => 'Enter a valid email address.']);
-        }
-
-        if ($email === strtolower((string) $by->email)) {
-            throw ValidationException::withMessages(['email' => 'That is your own address.']);
-        }
-
-        $team = Team::find($file->team_id);
-        $inCompany = User::whereRaw('lower(email) = ?', [$email])->get()->contains(fn (User $u) => $u->belongsToTeam($team));
-
-        if ($inCompany) {
-            throw ValidationException::withMessages(['email' => 'That person is already in your company and can open the file.']);
-        }
 
         if (FileShare::where('file_id', $file->id)->active()->count() >= FileShare::MAX_ACTIVE_PER_FILE) {
             throw ValidationException::withMessages(['email' => 'This file is already shared with the most people allowed. Revoke one first.']);
@@ -66,11 +62,125 @@ class FileShareService
                 return $share;
             }
 
+            // A member's pending request for the same person becomes the share itself: the
+            // owner sharing directly IS the approval.
+            $share = FileShare::where('file_id', $file->id)->where('email', $email)->pending()->first();
+
+            if ($share) {
+                $share->update(['status' => 'active', 'decided_by' => $by->id, 'decided_at' => now(), 'expires_at' => now()->addDays($days)]);
+                $this->record($file, $share, 'approved', $by->email, $email);
+
+                return $share;
+            }
+
             $share = FileShare::create(['file_id' => $file->id, 'email' => $email, 'created_by' => $by->id, 'expires_at' => now()->addDays($days)]);
             $this->record($file, $share, 'created', $by->email, $email);
 
             return $share;
         });
+    }
+
+    /**
+     * A member asks for this file to be shared with someone outside the company (R-26).
+     * Creates a PENDING share: no access until approve() — enforced by FileShare::active(),
+     * which every open and download runs through, not by anything the interface hides.
+     */
+    public function requestShare(User $by, File $file, string $email, int $days): FileShare
+    {
+        abort_unless($this->canRequestShare($by, $file), 403);
+
+        $email = $this->normalisedEmail($by, $file, $email);
+        $days = max(1, min($days, FileShare::MAX_DAYS));
+
+        if (FileShare::where('file_id', $file->id)->where('email', $email)->active()->exists()) {
+            throw ValidationException::withMessages(['email' => 'That person already has access to this file.']);
+        }
+
+        return DB::transaction(function () use ($by, $file, $email, $days) {
+            // One open request per person and file: asking again just updates the window.
+            $share = FileShare::where('file_id', $file->id)->where('email', $email)->pending()->first();
+
+            if ($share) {
+                $share->update(['expires_at' => now()->addDays($days)]);
+
+                return $share;
+            }
+
+            $share = FileShare::create([
+                'file_id' => $file->id,
+                'email' => $email,
+                'status' => 'pending',
+                'created_by' => $by->id,
+                'requested_by' => $by->id,
+                'expires_at' => now()->addDays($days),
+            ]);
+            $this->record($file, $share, 'requested', $by->email, $email);
+
+            return $share;
+        });
+    }
+
+    /** An owner or administrator turns a member's request into access. */
+    public function approve(User $by, FileShare $share): FileShare
+    {
+        $file = $share->file;
+
+        abort_unless($file !== null && $this->canShare($by, $file), 403);
+        abort_unless($share->status === 'pending' && $share->revoked_at === null, 404);
+
+        if (FileShare::where('file_id', $file->id)->active()->count() >= FileShare::MAX_ACTIVE_PER_FILE) {
+            throw ValidationException::withMessages(['share' => 'This file is already shared with the most people allowed. Revoke one first.']);
+        }
+
+        // The access window starts at the approval, for the days the requester asked for.
+        $share->update([
+            'status' => 'active',
+            'decided_by' => $by->id,
+            'decided_at' => now(),
+            'expires_at' => now()->addDays($share->requestedDays()),
+        ]);
+
+        $this->record($file, $share, 'approved', $by->email, $share->email);
+
+        return $share;
+    }
+
+    /** An owner or administrator turns a member's request down. Nothing was ever accessible. */
+    public function decline(User $by, FileShare $share, string $note = ''): FileShare
+    {
+        $file = $share->file;
+
+        abort_unless($file !== null && $this->canShare($by, $file), 403);
+        abort_unless($share->status === 'pending' && $share->revoked_at === null, 404);
+
+        $share->update(['status' => 'declined', 'decided_by' => $by->id, 'decided_at' => now()]);
+
+        $this->record($file, $share, 'declined', $by->email, $share->email, $note ?: null);
+
+        return $share;
+    }
+
+    /** Shared validation for share() and requestShare(): a clean outside address. */
+    private function normalisedEmail(User $by, File $file, string $email): string
+    {
+        $email = strtolower(trim($email));
+
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw ValidationException::withMessages(['email' => 'Enter a valid email address.']);
+        }
+
+        if ($email === strtolower((string) $by->email)) {
+            throw ValidationException::withMessages(['email' => 'That is your own address.']);
+        }
+
+        $team = Team::find($file->team_id);
+        $inCompany = User::whereRaw('lower(email) = ?', [$email])->get()->contains(fn (User $u) => $u->belongsToTeam($team));
+
+        if ($inCompany) {
+            throw ValidationException::withMessages(['email' => 'That person is already in your company and can open the file.']);
+        }
+
+        return $email;
     }
 
     public function revoke(User $by, FileShare $share, string $note = ''): void
