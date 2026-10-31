@@ -38,6 +38,18 @@ Route::post('/auth/ecosystem', [EcosystemAuthController::class, 'handle'])
 // the visitor is sent to the normal sign-in page and the token in the URL is never read.
 Route::get('/auth/ecosystem', [EcosystemAuthController::class, 'legacy']);
 
+// CSP violation reports (browser-sent, session-less; authenticity is irrelevant — it only ever
+// logs a directive and a host, throttled and de-duplicated). R-25 fleet pattern.
+Route::post('/csp-report', \App\Http\Controllers\CspReportController::class)
+    ->middleware('throttle:60,1')
+    ->withoutMiddleware([
+        'Illuminate\Foundation\Http\Middleware\PreventRequestForgery',
+        'Illuminate\Foundation\Http\Middleware\VerifyCsrfToken',
+        'Illuminate\Foundation\Http\Middleware\ValidateCsrfToken',
+        \Illuminate\Session\Middleware\StartSession::class,
+        \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+    ])->name('csp-report');
+
 // Cookie Policy — Jetstream's termsAndPrivacyPolicy feature covers terms.show/policy.show
 // natively (registered at /terms-of-service and /privacy-policy, reading resources/markdown/
 // terms.md and policy.md). There's no Jetstream equivalent for a Cookie Policy, so this one is

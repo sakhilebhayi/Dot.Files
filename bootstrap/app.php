@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Global, so error pages, /up and the CSP report endpoint carry the headers too (R-25).
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+
         $middleware->web(append: [
             AuthenticateSession::class,
             EnsureCurrentTeam::class,
