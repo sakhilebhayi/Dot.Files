@@ -22,6 +22,13 @@
                         <option value="90">{{ __('90 days (longest)') }}</option>
                     </select>
                 </div>
+                <div>
+                    <label for="share-permission" class="block text-sm font-medium">{{ __('They may') }}</label>
+                    <select id="share-permission" wire:model="permission" class="fx-select mt-1">
+                        <option value="download">{{ __('View and download') }}</option>
+                        <option value="view">{{ __('View only') }}</option>
+                    </select>
+                </div>
                 <button type="submit" class="fx-btn fx-btn--oxide"><x-fx.icon name="share" /> {{ __('Share') }}</button>
             </form>
             @error('email')<p class="mt-2 text-sm" style="color: var(--danger);">{{ $message }}</p>@enderror
@@ -48,7 +55,8 @@
                 <div>
                     <p class="font-medium">{{ $share->email }}</p>
                     <p class="text-sm" style="color: var(--ink-soft);">
-                        {{ __('Until') }} {{ $share->expires_at->format('j M Y') }}
+                        {{ $share->permissionLabel() }}
+                        · {{ __('Until') }} {{ $share->expires_at->format('j M Y') }}
                         ·
                         @if ($share->first_opened_at)
                             {{ __('opened') }} {{ $share->open_count }}&times;, {{ __('last') }} {{ $share->last_opened_at->diffForHumans() }}

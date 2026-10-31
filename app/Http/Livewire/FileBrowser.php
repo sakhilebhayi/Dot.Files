@@ -9,6 +9,8 @@ use App\Models\FileShare;
 use App\Models\Folder;
 use App\Models\Obj;
 use App\Models\Team;
+use App\Services\FileShareService;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -258,6 +260,93 @@ class FileBrowser extends Component
 
         $this->selectedObjects = [];
         $this->bulkDeletionRequested = true;
+    }
+
+    // ---- Sharing a selection (R-28 §23): one recipient, one preset, many records at once. ----
+
+    public bool $sharingSelection = false;
+
+    public string $shareEmail = '';
+
+    public int $shareDays = FileShare::DEFAULT_DAYS;
+
+    public string $sharePermission = 'download';
+
+    public ?string $shareNotice = null;
+
+    public function shareSelected(FileShareService $service): void
+    {
+        $this->validate([
+            'shareEmail' => ['required', 'email', 'max:255'],
+            'shareDays' => ['required', 'integer', 'in:7,30,60,90'],
+            'sharePermission' => ['required', 'in:view,download'],
+        ]);
+
+        $team = $this->resolveCurrentTeam();
+
+        if (! $team) {
+            abort(403, 'No active team selected.');
+        }
+
+        // The selection is client-controlled: keep only this team's untrashed FILES. Folders
+        // never share (a share is one file, never a container), so they fall out here.
+        $files = Obj::with('objectable')
+            ->whereIn('id', array_filter(array_values($this->selectedObjects), 'is_numeric'))
+            ->where('team_id', $team->id)
+            ->whereNull('trashed_at')
+            ->where('objectable_type', 'file')
+            ->get()
+            ->map(fn (Obj $o) => $o->objectable)
+            ->filter()
+            ->values();
+
+        if ($files->isEmpty()) {
+            $this->addError('shareEmail', __('Pick at least one record — folders cannot be shared.'));
+
+            return;
+        }
+
+        $user = auth()->user();
+        $shared = 0;
+        $requested = 0;
+        $failures = [];
+
+        // Each file is its own share with the full single-share rules; one file's refusal
+        // (say, its share limit) never blocks the rest of the batch.
+        foreach ($files as $file) {
+            try {
+                if ($service->canShare($user, $file)) {
+                    $service->share($user, $file, $this->shareEmail, $this->shareDays, $this->sharePermission);
+                    $shared++;
+                } else {
+                    $service->requestShare($user, $file, $this->shareEmail, $this->shareDays, $this->sharePermission);
+                    $requested++;
+                }
+            } catch (ValidationException $e) {
+                $failures[] = $file->name.' — '.collect($e->errors())->flatten()->first();
+            }
+        }
+
+        if ($shared === 0 && $requested === 0) {
+            $this->addError('shareEmail', $failures[0] ?? __('Nothing could be shared.'));
+
+            return;
+        }
+
+        $email = strtolower(trim($this->shareEmail));
+        $label = strtolower($this->sharePermission === 'view' ? __('View only') : __('View and download'));
+        $notice = $shared > 0
+            ? trans_choice(':count record shared|:count records shared', $shared, ['count' => $shared]).' '.__('with').' '.$email.' — '.$label.', '.trans_choice(':count day|:count days', $this->shareDays, ['count' => $this->shareDays]).'.'
+            : trans_choice(':count share requested|:count shares requested', $requested, ['count' => $requested]).' '.__('for').' '.$email.' — '.__('an owner or administrator decides; they see nothing until then.');
+
+        if ($failures !== []) {
+            $notice .= ' '.__('Not shared:').' '.implode(' · ', $failures);
+        }
+
+        $this->shareNotice = $notice;
+        $this->selectedObjects = [];
+        $this->sharingSelection = false;
+        $this->shareEmail = '';
     }
 
     public function updatedUpload($upload)

@@ -40,40 +40,42 @@ class FileShareService
         return $team !== null && ! $team->personal_team && $user->belongsToTeam($team) && ! $this->canShare($user, $file);
     }
 
-    public function share(User $by, File $file, string $email, int $days): FileShare
+    public function share(User $by, File $file, string $email, int $days, string $permission = 'download'): FileShare
     {
         abort_unless($this->canShare($by, $file), 403);
 
         $email = $this->normalisedEmail($by, $file, $email);
         $days = max(1, min($days, FileShare::MAX_DAYS));
+        $permission = $this->normalisedPermission($permission);
 
         if (FileShare::where('file_id', $file->id)->active()->count() >= FileShare::MAX_ACTIVE_PER_FILE) {
             throw ValidationException::withMessages(['email' => 'This file is already shared with the most people allowed. Revoke one first.']);
         }
 
-        return DB::transaction(function () use ($by, $file, $email, $days) {
-            // One live share per person and file: sharing again renews it instead of stacking.
+        return DB::transaction(function () use ($by, $file, $email, $days, $permission) {
+            // One live share per person and file: sharing again renews it instead of stacking,
+            // and the sharer's latest permission choice is the one that holds.
             $share = FileShare::where('file_id', $file->id)->where('email', $email)->active()->first();
 
             if ($share) {
-                $share->update(['expires_at' => now()->addDays($days)]);
+                $share->update(['expires_at' => now()->addDays($days), 'permission' => $permission]);
                 $this->record($file, $share, 'renewed', $by->email, $email);
 
                 return $share;
             }
 
             // A member's pending request for the same person becomes the share itself: the
-            // owner sharing directly IS the approval.
+            // owner sharing directly IS the approval, on the owner's terms.
             $share = FileShare::where('file_id', $file->id)->where('email', $email)->pending()->first();
 
             if ($share) {
-                $share->update(['status' => 'active', 'decided_by' => $by->id, 'decided_at' => now(), 'expires_at' => now()->addDays($days)]);
+                $share->update(['status' => 'active', 'decided_by' => $by->id, 'decided_at' => now(), 'expires_at' => now()->addDays($days), 'permission' => $permission]);
                 $this->record($file, $share, 'approved', $by->email, $email);
 
                 return $share;
             }
 
-            $share = FileShare::create(['file_id' => $file->id, 'email' => $email, 'created_by' => $by->id, 'expires_at' => now()->addDays($days)]);
+            $share = FileShare::create(['file_id' => $file->id, 'email' => $email, 'created_by' => $by->id, 'expires_at' => now()->addDays($days), 'permission' => $permission]);
             $this->record($file, $share, 'created', $by->email, $email);
 
             return $share;
@@ -85,23 +87,24 @@ class FileShareService
      * Creates a PENDING share: no access until approve() — enforced by FileShare::active(),
      * which every open and download runs through, not by anything the interface hides.
      */
-    public function requestShare(User $by, File $file, string $email, int $days): FileShare
+    public function requestShare(User $by, File $file, string $email, int $days, string $permission = 'download'): FileShare
     {
         abort_unless($this->canRequestShare($by, $file), 403);
 
         $email = $this->normalisedEmail($by, $file, $email);
         $days = max(1, min($days, FileShare::MAX_DAYS));
+        $permission = $this->normalisedPermission($permission);
 
         if (FileShare::where('file_id', $file->id)->where('email', $email)->active()->exists()) {
             throw ValidationException::withMessages(['email' => 'That person already has access to this file.']);
         }
 
-        return DB::transaction(function () use ($by, $file, $email, $days) {
-            // One open request per person and file: asking again just updates the window.
+        return DB::transaction(function () use ($by, $file, $email, $days, $permission) {
+            // One open request per person and file: asking again just updates the terms.
             $share = FileShare::where('file_id', $file->id)->where('email', $email)->pending()->first();
 
             if ($share) {
-                $share->update(['expires_at' => now()->addDays($days)]);
+                $share->update(['expires_at' => now()->addDays($days), 'permission' => $permission]);
 
                 return $share;
             }
@@ -113,6 +116,7 @@ class FileShareService
                 'created_by' => $by->id,
                 'requested_by' => $by->id,
                 'expires_at' => now()->addDays($days),
+                'permission' => $permission,
             ]);
             $this->record($file, $share, 'requested', $by->email, $email);
 
@@ -158,6 +162,16 @@ class FileShareService
         $this->record($file, $share, 'declined', $by->email, $share->email, $note ?: null);
 
         return $share;
+    }
+
+    /** A permission is one of the presets the model names — nothing else is stored. */
+    private function normalisedPermission(string $permission): string
+    {
+        if (! in_array($permission, FileShare::PERMISSIONS, true)) {
+            throw ValidationException::withMessages(['permission' => 'Pick what they may do: view only, or view and download.']);
+        }
+
+        return $permission;
     }
 
     /** Shared validation for share() and requestShare(): a clean outside address. */

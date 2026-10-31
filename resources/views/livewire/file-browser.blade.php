@@ -127,6 +127,10 @@
         </form>
     @endif
 
+    @if ($shareNotice)
+        <div class="fx-note fx-note--good" role="status">{{ $shareNotice }}</div>
+    @endif
+
     {{-- Selection: a quiet action bar the moment anything is selected. --}}
     @if (count($selectedObjects) > 0)
         <div class="fx-panel flex flex-wrap items-center gap-2 px-3 py-2" role="toolbar" aria-label="{{ __('Selection actions') }}">
@@ -134,9 +138,45 @@
                 {{ trans_choice(':count item selected|:count items selected', count($selectedObjects), ['count' => count($selectedObjects)]) }}
             </p>
             <button type="button" class="fx-btn fx-btn--quiet" wire:click="$set('selectedObjects', [])">{{ __('Clear') }}</button>
+            <button type="button" class="fx-btn" wire:click="$toggle('sharingSelection')">
+                <x-fx.icon name="share" /> {{ __('Share selected') }}
+            </button>
             <button type="button" class="fx-btn fx-btn--danger-outline !min-h-[36px]" wire:click="requestBulkDeletion">
                 {{ __('Request deletion') }}
             </button>
+
+            @if ($sharingSelection)
+                <form class="w-full flex flex-wrap items-end gap-3 border-t pt-3 mt-1" style="border-color: var(--line);"
+                      wire:submit.prevent="shareSelected">
+                    <div>
+                        <label for="bulk-share-email" class="block text-sm font-medium">{{ __('Their email') }}</label>
+                        <input id="bulk-share-email" type="email" wire:model="shareEmail" required class="fx-input mt-1 w-64" autocomplete="off">
+                    </div>
+                    <div>
+                        <label for="bulk-share-days" class="block text-sm font-medium">{{ __('Access lasts') }}</label>
+                        <select id="bulk-share-days" wire:model="shareDays" class="fx-select mt-1">
+                            <option value="7">{{ __('7 days') }}</option>
+                            <option value="30">{{ __('30 days') }}</option>
+                            <option value="60">{{ __('60 days') }}</option>
+                            <option value="90">{{ __('90 days (longest)') }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="bulk-share-permission" class="block text-sm font-medium">{{ __('They may') }}</label>
+                        <select id="bulk-share-permission" wire:model="sharePermission" class="fx-select mt-1">
+                            <option value="download">{{ __('View and download') }}</option>
+                            <option value="view">{{ __('View only') }}</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="fx-btn fx-btn--oxide" wire:loading.attr="disabled">{{ __('Share') }}</button>
+                    <p class="w-full text-xs mt-0" style="color: var(--ink-faint);">
+                        {{ __('Each record becomes its own share with the usual rules: folders are left out, and where approval is required the records stay invisible until an owner or administrator decides.') }}
+                    </p>
+                    @error('shareEmail')<p class="w-full text-sm" style="color: var(--danger);">{{ $message }}</p>@enderror
+                    @error('shareDays')<p class="w-full text-sm" style="color: var(--danger);">{{ $message }}</p>@enderror
+                    @error('sharePermission')<p class="w-full text-sm" style="color: var(--danger);">{{ $message }}</p>@enderror
+                </form>
+            @endif
         </div>
     @endif
 

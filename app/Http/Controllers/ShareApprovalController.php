@@ -81,9 +81,10 @@ class ShareApprovalController extends Controller
         $data = $request->validate([
             'email' => ['required', 'email', 'max:255'],
             'days' => ['required', 'integer', 'in:7,30,60,90'],
+            'permission' => ['nullable', 'in:view,download'],
         ]);
 
-        $share = $service->requestShare($request->user(), $file, $data['email'], (int) $data['days']);
+        $share = $service->requestShare($request->user(), $file, $data['email'], (int) $data['days'], $data['permission'] ?? 'download');
 
         return redirect()->route('approvals')->with('status',
             'Asked to share '.$file->name.' with '.$share->email.'. An owner or administrator decides; nothing is visible to them until then.');

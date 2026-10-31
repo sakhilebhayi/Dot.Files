@@ -18,6 +18,13 @@ class FileShare extends Model
 
     public const MAX_ACTIVE_PER_FILE = 25;
 
+    /**
+     * The honest preset set (R-28 §24): this workspace can show a document and hand over a copy,
+     * nothing else, so those are the only permissions it claims. `view` = open the share page and
+     * its snapshot; `download` = view plus an authorised copy of the file.
+     */
+    public const PERMISSIONS = ['view', 'download'];
+
     protected $guarded = [];
 
     protected $casts = [
@@ -55,6 +62,16 @@ class FileShare extends Model
     public function isActive(): bool
     {
         return $this->status === 'active' && $this->revoked_at === null && $this->expires_at->isFuture();
+    }
+
+    public function canDownload(): bool
+    {
+        return $this->permission !== 'view';
+    }
+
+    public function permissionLabel(): string
+    {
+        return $this->canDownload() ? __('View and download') : __('View only');
     }
 
     /** The days the sharer chose, recoverable from the stored window. */
