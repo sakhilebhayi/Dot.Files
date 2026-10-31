@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\EcosystemMembershipController;
 use App\Http\Controllers\Api\EcosystemSearchController;
+use App\Http\Controllers\Api\PlatformFileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -30,3 +31,19 @@ Route::post('/ecosystem/membership', EcosystemMembershipController::class)
 Route::post('/ecosystem/search', EcosystemSearchController::class)
     ->middleware('throttle:120,1')
     ->name('api.ecosystem.search');
+
+// The platform file API (R-25 Phase 3): other Dot platforms store and fetch business files
+// here, server to server, each signed with its own secret and scoped to its own files.
+// Contract: docs/programme/PLATFORM_FILE_API.md.
+Route::prefix('/platform/files')->name('api.platform.files.')->group(function () {
+    Route::post('/store', [PlatformFileController::class, 'store'])
+        ->middleware('throttle:60,1')->name('store');
+    Route::post('/fetch', [PlatformFileController::class, 'fetch'])
+        ->middleware('throttle:120,1')->name('fetch');
+    Route::post('/meta', [PlatformFileController::class, 'meta'])
+        ->middleware('throttle:120,1')->name('meta');
+    Route::post('/list', [PlatformFileController::class, 'list'])
+        ->middleware('throttle:120,1')->name('list');
+    Route::post('/trash', [PlatformFileController::class, 'trash'])
+        ->middleware('throttle:60,1')->name('trash');
+});

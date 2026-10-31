@@ -66,6 +66,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Platform file API callers (R-25 Phase 3)
+    |--------------------------------------------------------------------------
+    | One shared secret per Dot platform that may store and fetch files here,
+    | server to server (see docs/programme/PLATFORM_FILE_API.md). A platform
+    | with no secret configured cannot call at all; the filter drops blanks.
+    | The same value lives on the calling platform's host.
+    */
+
+    'platform_secrets' => array_filter([
+        'agents' => env('DOT_SERVICE_SECRET_AGENTS'),
+        'analytics' => env('DOT_SERVICE_SECRET_ANALYTICS'),
+        'billing' => env('DOT_SERVICE_SECRET_BILLING'),
+        'central' => env('DOT_SERVICE_SECRET_CENTRAL'),
+        'charts' => env('DOT_SERVICE_SECRET_CHARTS'),
+        'docs' => env('DOT_SERVICE_SECRET_DOCS'),
+        'dopemine' => env('DOT_SERVICE_SECRET_DOPEMINE'),
+        'engage' => env('DOT_SERVICE_SECRET_ENGAGE'),
+        'finance' => env('DOT_SERVICE_SECRET_FINANCE'),
+        'forms' => env('DOT_SERVICE_SECRET_FORMS'),
+        'hr' => env('DOT_SERVICE_SECRET_HR'),
+        'memory' => env('DOT_SERVICE_SECRET_MEMORY'),
+        'mines' => env('DOT_SERVICE_SECRET_MINES'),
+        'press' => env('DOT_SERVICE_SECRET_PRESS'),
+        'projects' => env('DOT_SERVICE_SECRET_PROJECTS'),
+        'sheet' => env('DOT_SERVICE_SECRET_SHEET'),
+    ]),
+
+    /*
+    |--------------------------------------------------------------------------
     | InfoDot is the only front door (R-27 §9)
     |--------------------------------------------------------------------------
     | When true, the login PAGE sends visitors to InfoDot, where they sign in

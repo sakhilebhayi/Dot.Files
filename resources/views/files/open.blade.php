@@ -47,7 +47,7 @@
                 <h1 class="mt-2 text-2xl font-bold break-words">{{ $file->name }}</h1>
                 <p class="mt-1" style="color: var(--ink-soft);">
                     {{ $file->kindLabel() }} · {{ $file->sizeForHumans() }} · {{ __('filed') }} {{ $file->created_at->format('j M Y') }}
-                    @if ($uploader) {{ __('by') }} {{ $uploader->name }} @endif
+                    @if ($uploader) {{ __('by') }} {{ $uploader->name }} @elseif ($file->originLabel()) {{ __('by') }} {{ $file->originLabel() }} @endif
                     @if ($folderName)
                         · {{ __('in') }} <a href="{{ route('files', ['uuid' => $folderUuid]) }}" class="underline">{{ $folderName }}</a>
                     @endif
