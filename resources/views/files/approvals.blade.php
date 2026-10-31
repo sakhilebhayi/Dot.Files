@@ -16,6 +16,50 @@
             <div class="fx-note fx-note--good" role="status">{{ session('status') }}</div>
         @endif
 
+        {{-- Governance: unusual activity for owners to judge (R-28 §29). Review-only — the
+             evidence is stated plainly, nothing is blocked and no one is accused. --}}
+        @if ($canDecide && $flags->isNotEmpty())
+            <section class="fx-panel p-5" aria-label="{{ __('Activity to review') }}">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="font-bold">{{ __('Activity to review') }}</h2>
+                    <span class="fx-tally" aria-hidden="true">{{ $flags->count() }}</span>
+                </div>
+                <p class="mt-1 text-sm" style="color: var(--ink-soft);">
+                    {{ __('Patterns worth a look, not accusations. Every version of every record is preserved, so whatever happened can be undone from the history.') }}
+                </p>
+
+                @foreach ($flags as $flag)
+                    <div class="mt-4 flex flex-wrap items-center gap-3 border-t pt-4" style="border-color: var(--line);">
+                        <span style="color: var(--ink-soft);"><x-fx.icon :name="$flag->file?->kind() ?? 'file'" class="w-6 h-6" /></span>
+                        <div class="min-w-0 flex-grow">
+                            <p class="font-medium break-words">
+                                {{ $flag->ruleLabel() }} · {{ $flag->file?->name ?? __('a removed file') }}
+                            </p>
+                            <p class="text-sm" style="color: var(--ink-soft);">
+                                @if ($flag->rule === 'version-churn')
+                                    {{ __(':actor saved new content :count times within :minutes minutes (versions :versions).', ['actor' => $flag->actor?->name ?? __('a former member'), 'count' => $flag->evidence['count'] ?? '?', 'minutes' => $flag->evidence['window_minutes'] ?? '?', 'versions' => implode(', ', $flag->evidence['versions'] ?? [])]) }}
+                                @elseif ($flag->rule === 'replace-then-trash')
+                                    {{ __('Content replaced (version :version), then :actor trashed the record within :minutes minutes. It is still in the trash and every version is in its history.', ['version' => $flag->evidence['replaced_version'] ?? '?', 'actor' => $flag->actor?->name ?? __('a former member'), 'minutes' => $flag->evidence['window_minutes'] ?? '?']) }}
+                                @endif
+                                · {{ $flag->created_at->diffForHumans() }}
+                            </p>
+                        </div>
+                        @if ($flag->file)
+                            <a href="{{ route('files.open', $flag->file->uuid) }}" class="fx-btn fx-btn--quiet">{{ __('Open the record') }}</a>
+                        @endif
+                        <form method="POST" action="{{ route('approvals.flags.review', $flag) }}">
+                            @csrf
+                            <button type="submit" class="fx-btn">{{ __('Mark reviewed') }}</button>
+                        </form>
+                        <form method="POST" action="{{ route('approvals.flags.dismiss', $flag) }}">
+                            @csrf
+                            <button type="submit" class="fx-btn fx-btn--quiet">{{ __('Dismiss') }}</button>
+                        </form>
+                    </div>
+                @endforeach
+            </section>
+        @endif
+
         {{-- Waiting on a decision --}}
         <section class="fx-panel p-5" aria-label="{{ __('Waiting for approval') }}">
             <div class="flex items-center justify-between gap-3">

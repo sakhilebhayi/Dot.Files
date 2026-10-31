@@ -61,7 +61,7 @@ class FileVersions
     {
         $this->ensureBaseline($file);
 
-        return DB::transaction(function () use ($file, $binary, $mime, $userId, $platform, $action, $newName, $expectedBase) {
+        $version = DB::transaction(function () use ($file, $binary, $mime, $userId, $platform, $action, $newName, $expectedBase) {
             // The trail itself is the authority on numbering — never an in-memory attribute.
             $next = ((int) FileVersion::where('file_id', $file->id)->max('version')) + 1;
 
@@ -108,6 +108,15 @@ class FileVersions
 
             return $version;
         });
+
+        // Governance watches people, not platforms (R-28 §29, owner policy): a human saving
+        // content is what the hide-the-evidence rules look at, once the response is out.
+        if ($userId !== null && in_array($action, ['replaced', 'restored'], true)) {
+            $fileId = $file->id;
+            dispatch(fn () => app(FileGovernance::class)->afterReplace($fileId, $userId))->afterResponse();
+        }
+
+        return $version;
     }
 
     /** From an UploadedFile (the document page's "Replace content" flow). */

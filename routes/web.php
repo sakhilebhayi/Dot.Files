@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\EcosystemAuthController;
 use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\DeletionModerationController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\FileFlagController;
 use App\Http\Controllers\FileOpenController;
 use App\Http\Controllers\ShareApprovalController;
 use App\Http\Controllers\SharedFileController;
@@ -109,6 +110,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/approvals', [ShareApprovalController::class, 'index'])->name('approvals');
     Route::post('/approvals/{share}/approve', [ShareApprovalController::class, 'approve'])->name('approvals.approve');
     Route::post('/approvals/{share}/decline', [ShareApprovalController::class, 'decline'])->name('approvals.decline');
+
+    // Governance flags (R-28 §29): review-only — closing one records the decision, nothing more.
+    Route::post('/approvals/flags/{flag}/review', [FileFlagController::class, 'review'])->name('approvals.flags.review');
+    Route::post('/approvals/flags/{flag}/dismiss', [FileFlagController::class, 'dismiss'])->name('approvals.flags.dismiss');
 });
 
 Route::middleware(['auth', 'verified', 'operator'])->prefix('operator')->name('operator.')->group(function () {
