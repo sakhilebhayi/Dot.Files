@@ -19,10 +19,18 @@
                     {{ $file->kindLabel() }} · {{ $file->sizeForHumans() }} · {{ __('available until') }} {{ $share->expires_at->format('j M Y') }}
                 </p>
                 <p class="mt-2 text-sm" style="color: var(--ink-soft);">
-                    {{ __('Another company shared this one file with you. You can view and download it; nothing else of theirs is visible to you, and access ends on the date above or sooner if they remove it.') }}
+                    @if ($share->canDownload())
+                        {{ __('Another company shared this one file with you. You can view and download it; nothing else of theirs is visible to you, and access ends on the date above or sooner if they remove it.') }}
+                    @else
+                        {{ __('Another company shared this one file with you, to view only — no copy leaves this page. Nothing else of theirs is visible to you, and access ends on the date above or sooner if they remove it.') }}
+                    @endif
                 </p>
                 <div class="mt-5 flex flex-wrap items-center gap-2">
-                    <a href="{{ route('shared.download', $share) }}" class="fx-btn fx-btn--oxide"><x-fx.icon name="download" /> {{ __('Download') }}</a>
+                    @if ($share->canDownload())
+                        <a href="{{ route('shared.download', $share) }}" class="fx-btn fx-btn--oxide"><x-fx.icon name="download" /> {{ __('Download') }}</a>
+                    @else
+                        <span class="fx-stamp">{{ __('View only') }}</span>
+                    @endif
                     <a href="{{ route('shared') }}" class="fx-btn fx-btn--quiet">{{ __('All files shared with me') }}</a>
                 </div>
             </div>

@@ -38,6 +38,13 @@
                             <option value="90">{{ __('90 days (longest)') }}</option>
                         </select>
                     </div>
+                    <div>
+                        <label for="share-permission" class="block text-sm font-medium">{{ __('They may') }}</label>
+                        <select id="share-permission" name="permission" class="fx-select mt-1">
+                            <option value="download" @selected(old('permission', 'download') === 'download')>{{ __('View and download') }}</option>
+                            <option value="view" @selected(old('permission') === 'view')>{{ __('View only') }}</option>
+                        </select>
+                    </div>
                     <button type="submit" class="fx-btn fx-btn--oxide"><x-fx.icon name="share" /> {{ __('Send the request') }}</button>
                 </form>
                 @error('email')<p class="mt-2 text-sm" style="color: var(--danger);">{{ $message }}</p>@enderror

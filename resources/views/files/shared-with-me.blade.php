@@ -28,8 +28,10 @@
                             <a href="{{ route('files.open', $share->file->uuid) }}" class="fx-card-title">{{ $share->file->name }}</a>
                             <p class="fx-card-meta">{{ $share->file->kindLabel() }} · {{ $share->file->sizeForHumans() }} · {{ __('until') }} {{ $share->expires_at->format('j M Y') }}</p>
                             <div class="flex items-center justify-between gap-2 mt-1">
-                                <span class="fx-stamp fx-stamp--active">{{ __('Shared') }}</span>
-                                <a href="{{ route('shared.download', $share) }}" class="fx-btn fx-btn--quiet" title="{{ __('Download') }}"><x-fx.icon name="download" /><span class="sr-only">{{ __('Download') }}</span></a>
+                                <span class="fx-stamp fx-stamp--active">{{ $share->permissionLabel() }}</span>
+                                @if ($share->canDownload())
+                                    <a href="{{ route('shared.download', $share) }}" class="fx-btn fx-btn--quiet" title="{{ __('Download') }}"><x-fx.icon name="download" /><span class="sr-only">{{ __('Download') }}</span></a>
+                                @endif
                             </div>
                         </div>
                     </li>

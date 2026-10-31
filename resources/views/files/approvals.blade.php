@@ -32,6 +32,7 @@
                         <p class="font-semibold break-words">{{ $share->file?->name ?? __('(file no longer exists)') }}</p>
                         <p class="text-sm" style="color: var(--ink-soft);">
                             {{ __('to') }} <span class="font-medium">{{ $share->email }}</span>
+                            · {{ strtolower($share->permissionLabel()) }}
                             · {{ trans_choice(':count day|:count days', $share->requestedDays(), ['count' => $share->requestedDays()]) }}
                             · {{ __('asked by') }} {{ $share->requester?->name ?? __('a former member') }}
                             {{ $share->created_at->diffForHumans() }}
@@ -75,6 +76,7 @@
                         <p class="font-semibold break-words">{{ $share->file?->name }}</p>
                         <p class="text-sm" style="color: var(--ink-soft);">
                             {{ __('with') }} <span class="font-medium">{{ $share->email }}</span>
+                            · {{ strtolower($share->permissionLabel()) }}
                             · {{ __('until') }} {{ $share->expires_at->format('j M Y') }}
                             ·
                             @if ($share->first_opened_at)
@@ -104,7 +106,7 @@
                             <span style="color: var(--ink-soft);">· {{ __('to') }} {{ $share->email }}</span></p>
                         <p class="text-sm" style="color: var(--ink-soft); font-variant-numeric: tabular-nums;">
                             {{ $share->created_at->format('j M Y') }}
-                            @if ($share->isActive()) · {{ __('until') }} {{ $share->expires_at->format('j M Y') }} @endif
+                            @if ($share->isActive()) · {{ strtolower($share->permissionLabel()) }} · {{ __('until') }} {{ $share->expires_at->format('j M Y') }} @endif
                         </p>
                     </div>
                     @if ($share->isActive())

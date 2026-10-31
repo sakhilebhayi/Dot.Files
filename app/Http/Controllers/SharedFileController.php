@@ -33,6 +33,10 @@ class SharedFileController extends Controller
         // A trashed file is off the record for everyone outside the company (R-27).
         abort_unless($file !== null && ! $file->isTrashed() && $service->activeShareFor($user, $file)?->is($share), 404);
 
+        // The preset is the gate (R-28 §24): a view-only share never hands over a copy,
+        // whatever the page shows or the link claims.
+        abort_unless($share->canDownload(), 403, 'This file is shared with you to view only.');
+
         $service->opened($user, $share, 'downloaded');
 
         return Storage::disk('local')->download($file->path, $file->name);

@@ -20,6 +20,8 @@ class FileShares extends Component
 
     public int $days = FileShare::DEFAULT_DAYS;
 
+    public string $permission = 'download';
+
     public ?string $notice = null;
 
     public function mount(File $file): void
@@ -39,11 +41,12 @@ class FileShares extends Component
         $this->validate([
             'email' => ['required', 'email', 'max:255'],
             'days' => ['required', 'integer', 'in:7,30,60,90'],
+            'permission' => ['required', 'in:view,download'],
         ]);
 
-        $share = $service->share(auth()->user(), $this->file(), $this->email, $this->days);
+        $share = $service->share(auth()->user(), $this->file(), $this->email, $this->days, $this->permission);
 
-        $this->notice = 'Shared with '.$share->email.' until '.$share->expires_at->format('j M Y').'.';
+        $this->notice = 'Shared with '.$share->email.' until '.$share->expires_at->format('j M Y').' — '.strtolower($share->permissionLabel()).'.';
         $this->email = '';
     }
 
