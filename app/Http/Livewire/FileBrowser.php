@@ -3,6 +3,9 @@
 namespace App\Http\Livewire;
 
 use App\Models\BulkDeletionRequest;
+use App\Models\File;
+use App\Models\FileShare;
+use App\Models\Folder;
 use App\Models\Obj;
 use App\Models\Team;
 use Livewire\Component;
@@ -74,6 +77,46 @@ class FileBrowser extends Component
     public $showingObjectloadForm = false;
 
     public $confirmingObjectDeletion;
+
+    /** Shelf (grid) or register (list) — a per-person preference, kept for the session. */
+    public string $view = 'grid';
+
+    public function mount(): void
+    {
+        $this->view = session('files.view', 'grid') === 'list' ? 'list' : 'grid';
+    }
+
+    public function setView(string $view): void
+    {
+        $this->view = $view === 'list' ? 'list' : 'grid';
+        session(['files.view' => $this->view]);
+    }
+
+    /**
+     * The room head's tallies — real queries against this company's records, nothing invented
+     * (R-26). The models carry the team scope, so each count is the current company's own.
+     */
+    public function getStatsProperty(): array
+    {
+        return [
+            'documents' => File::count(),
+            'folders' => max(0, Folder::count() - 1), // the root is the room, not a folder someone made
+            'bytes' => (int) File::sum('size'),
+        ];
+    }
+
+    /** Pending share requests waiting on an owner/admin of this company (R-26). */
+    public function getPendingSharesProperty(): int
+    {
+        $team = $this->resolveCurrentTeam();
+        $user = auth()->user();
+
+        if (! $team || $team->personal_team || ! ($user->ownsTeam($team) || $user->hasTeamRole($team, 'admin'))) {
+            return 0;
+        }
+
+        return FileShare::pending()->whereIn('file_id', File::pluck('id'))->count();
+    }
 
     public function getResultsProperty()
     {
@@ -186,6 +229,7 @@ class FileBrowser extends Component
             $team->files()->create([
                 'name' => $safeName,
                 'size' => $upload->getSize(),
+                'mime' => $upload->getMimeType(),
                 'path' => $upload->store('files', ['disk' => 'local']),
             ])
         );

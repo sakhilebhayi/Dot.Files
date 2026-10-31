@@ -36,4 +36,21 @@ class SharedFileController extends Controller
 
         return Storage::disk('local')->download($file->path, $file->name);
     }
+
+    /**
+     * The snapshot for a file shared with this person — re-checked against the live share the
+     * same way the download is, so a revoked or expired share shows nothing (R-26).
+     */
+    public function preview(Request $request, FileShare $share, FileShareService $service)
+    {
+        $file = $share->file;
+
+        abort_unless($file !== null && $service->activeShareFor($request->user(), $file)?->is($share), 404);
+        abort_unless($file->hasPreview() && Storage::disk('local')->exists($file->preview_path), 404);
+
+        return response()->file(Storage::disk('local')->path($file->preview_path), [
+            'Content-Type' => 'image/jpeg',
+            'Cache-Control' => 'private, max-age=300',
+        ]);
+    }
 }

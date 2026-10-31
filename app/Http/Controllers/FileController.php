@@ -52,4 +52,20 @@ class FileController extends Controller
 
         return Storage::disk('local')->download($file->path, $file->name);
     }
+
+    /**
+     * The document snapshot (R-26). Same policy as the download — the file's own company
+     * decides — and streamed from the private disk, so no snapshot ever has a public URL.
+     */
+    public function preview(File $file)
+    {
+        $this->authorize('download', $file);
+
+        abort_unless($file->hasPreview() && Storage::disk('local')->exists($file->preview_path), 404);
+
+        return response()->file(Storage::disk('local')->path($file->preview_path), [
+            'Content-Type' => 'image/jpeg',
+            'Cache-Control' => 'private, max-age=300',
+        ]);
+    }
 }
