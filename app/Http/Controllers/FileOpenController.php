@@ -6,6 +6,7 @@ use App\Models\File;
 use App\Models\Obj;
 use App\Models\Team;
 use App\Services\FileShareService;
+use App\Services\FileVersions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -69,6 +70,8 @@ class FileOpenController extends Controller
             'pinned' => $file->isPinnedBy($user),
             'uploader' => $file->uploader,
             'excerpt' => $excerpt,
+            // The append-only content trail (R-28): who changed what, when, from where.
+            'versions' => app(FileVersions::class)->trail($file),
             // The sharing trail is owner/admin reading: it names outside addresses.
             'events' => $shares->canShare($user, $file)
                 ? DB::table('file_share_events')->where('file_uuid', (string) $file->uuid)->orderByDesc('id')->limit(6)->get()

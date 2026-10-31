@@ -7,6 +7,7 @@ use App\Models\File;
 use App\Models\Obj;
 use App\Models\Team;
 use App\Services\Ecosystem\PlatformRequest;
+use App\Services\FileVersions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -83,6 +84,52 @@ class PlatformFileController extends Controller
         $this->record($platform, $team, (string) $file->uuid, 'stored');
 
         return response()->json($this->shape($file->refresh()), 201);
+    }
+
+    /**
+     * A platform saves new content for a file it filed (R-28 Part F): the change lands as a
+     * NEW version with the platform recorded as its author, the file moves forward, the
+     * snapshot regenerates. The old content stays in the trail — nothing is overwritten.
+     */
+    public function update(Request $request, FileVersions $versions): JsonResponse
+    {
+        [$platform, $team, $input, $error] = $this->open($request, [
+            'uuid' => ['required', 'uuid'],
+            'content_b64' => ['required', 'string', 'max:'.(int) ceil(self::MAX_BYTES * 1.4)],
+            'name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if ($error) {
+            return $error;
+        }
+
+        $file = $this->ownFile($platform, $team, $input['uuid']);
+
+        if (! $file) {
+            return response()->json(['error' => 'not_found'], 404);
+        }
+
+        $binary = base64_decode($input['content_b64'], true);
+
+        if ($binary === false || $binary === '') {
+            return response()->json(['error' => 'invalid_content'], 422);
+        }
+
+        if (strlen($binary) > self::MAX_BYTES) {
+            return response()->json(['error' => 'too_large'], 413);
+        }
+
+        $name = isset($input['name']) ? $this->cleanName($input['name']) : null;
+        $sniffed = (string) (new \finfo(FILEINFO_MIME_TYPE))->buffer($binary);
+
+        $version = $versions->replace($file, $binary, $sniffed ?: $file->mime, null, $platform, 'platform-update', $name ?: null);
+
+        $this->record($platform, $team, (string) $file->uuid, 'updated');
+
+        return response()->json($this->shape($file->refresh()) + [
+            'version' => (int) $version->version,
+            'checksum' => $version->checksum,
+        ]);
     }
 
     public function fetch(Request $request): JsonResponse

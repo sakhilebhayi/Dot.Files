@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\HasTeamScope;
 use App\Services\FilePreviewService;
 use App\Services\FileShareService;
+use App\Services\FileVersions;
 use App\Services\InfoDot\ResourceRegistry;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -125,11 +126,19 @@ class File extends Model
 
             // The document snapshot renders after the response too: an upload never waits on
             // image work, and a host that can't render simply leaves the type glyph (R-26).
+            // The baseline version row (R-28) is written in the same breath, so history
+            // starts at version 1 for every file.
             $fileId = $model->id;
             dispatch(function () use ($fileId) {
                 $file = File::withoutGlobalScope('team')->find($fileId);
 
-                if ($file !== null && $file->preview_status === 'pending') {
+                if ($file === null) {
+                    return;
+                }
+
+                app(FileVersions::class)->ensureBaseline($file);
+
+                if ($file->preview_status === 'pending') {
                     app(FilePreviewService::class)->generate($file);
                 }
             })->afterResponse();
@@ -138,6 +147,14 @@ class File extends Model
         static::deleting(function ($model) {
             Storage::disk('local')->delete($model->path);
             app(FilePreviewService::class)->delete($model);
+
+            // History leaves only with the file itself: every version blob and row goes too.
+            FileVersion::where('file_id', $model->id)->get()->each(function ($version) use ($model) {
+                if ($version->path !== $model->path) {
+                    Storage::disk('local')->delete($version->path);
+                }
+                $version->delete();
+            });
 
             // Anyone it was shared with loses access now, and the audit trail says why.
             app(FileShareService::class)->revokeMany(FileShare::where('file_id', $model->id)->active()->get(), 'file deleted');

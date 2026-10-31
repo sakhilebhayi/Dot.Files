@@ -85,6 +85,12 @@ class FileBrowser extends Component
     public function mount(): void
     {
         $this->view = session('files.view', 'grid') === 'list' ? 'list' : 'grid';
+
+        // The top bar's ecosystem search submits here (GET ?search=…): land with the
+        // workspace already filtered to what was typed.
+        if (($q = trim((string) request('search'))) !== '') {
+            $this->query = $q;
+        }
     }
 
     public function setView(string $view): void

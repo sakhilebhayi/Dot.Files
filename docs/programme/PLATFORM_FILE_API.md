@@ -51,6 +51,12 @@ same format allowlist as the workspace upload, names cleaned to a basename. Repl
 `{uuid, name, size, mime, reference, open_url}` — `reference` is the InfoDot reference once the
 pointer registers (null right after store), `open_url` the deep link people use (`/o/{uuid}`).
 
+### POST /api/platform/files/update  (throttle 60/min)
+`{team_uuid, uuid, content_b64, name?}` → saves new content for a file THIS platform filed, as a
+NEW version (R-28 Part F): the old content stays in the file's append-only trail, the file row
+moves forward, the snapshot regenerates. Replies the file's meta plus `{version, checksum}`.
+Same caps and cleaning as store; a trashed file answers `not_found`.
+
 ### POST /api/platform/files/fetch  (throttle 120/min)
 `{team_uuid, uuid}` → `{uuid, name, size, mime, content_b64}` for a file THIS platform filed for
 THAT company. Trashed files answer `not_found`. Files over 25 MB answer 413 `{"error":"too_large"}`

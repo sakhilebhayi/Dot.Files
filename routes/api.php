@@ -38,6 +38,8 @@ Route::post('/ecosystem/search', EcosystemSearchController::class)
 Route::prefix('/platform/files')->name('api.platform.files.')->group(function () {
     Route::post('/store', [PlatformFileController::class, 'store'])
         ->middleware('throttle:60,1')->name('store');
+    Route::post('/update', [PlatformFileController::class, 'update'])
+        ->middleware('throttle:60,1')->name('update');
     Route::post('/fetch', [PlatformFileController::class, 'fetch'])
         ->middleware('throttle:120,1')->name('fetch');
     Route::post('/meta', [PlatformFileController::class, 'meta'])
