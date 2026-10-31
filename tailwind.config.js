@@ -1,4 +1,3 @@
-import defaultTheme from 'tailwindcss/defaultTheme'
 import forms from '@tailwindcss/forms'
 
 /** @type {import('tailwindcss').Config} */
@@ -10,11 +9,7 @@ export default {
         './resources/js/**/*.js',
     ],
     theme: {
-        extend: {
-            fontFamily: {
-                sans: ['Archivo', ...defaultTheme.fontFamily.sans],
-            },
-        },
+        extend: {},
     },
     plugins: [forms],
 }

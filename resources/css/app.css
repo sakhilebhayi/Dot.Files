@@ -3,81 +3,122 @@
 @tailwind utilities;
 
 /*
- * The Archive Room — Dot.Files' design system (R-26).
+ * Dot.Files design system — the Achromatic Ledger (owner-chosen 2026-10-31 from the
+ * design-taste-frontend app library; sheet seed 2063257168, kind workspace, light).
  *
- * A company's records room: warm paper ground, kraft folder surfaces, oxide red as the working
- * accent (Files' container colour in the ecosystem's Yard language). Archivo carries everything
- * read; Big Shoulders Stencil Display is reserved for references, big tallies and the FILES
- * plate. Tokens first, `fx-` components second; Tailwind utilities only for one-off layout.
+ * The move: no colour anywhere in the chrome. The one primary action is near-black, the
+ * secondary is a grey pill, figures are set like a ledger in ink with tabular numerals, and
+ * the single data hue (#1d5fbf) marks only the screen's main data element — never a button,
+ * never navigation. Surfaces are flat: separation is a 1px rule or one tone step, no shadow
+ * at rest. Face: a blue-grey ground one level off white (the ledger's own paper), Geist for
+ * everything read, Geist Mono strictly for references and IDs. Sentence case throughout; no
+ * tracked capitals. The dark theme derives the same ledger at night: the primary inverts to
+ * a white pill with ink text, the hue lifts for the dark ground.
  */
 
 @layer base {
-    :root {
-        --paper: #efece6;
-        --panel: #fbfaf7;
-        --panel-soft: #f4f1e9;
-        --kraft: #d9c9a3;
-        --kraft-soft: #e8ddc2;
-        --ink: #231f18;
-        --ink-soft: #655d4d;
-        --ink-faint: #6f6454;
-        --oxide: #b3402a;
-        --oxide-deep: #8f2f1d;
-        --oxide-wash: rgba(179, 64, 42, 0.08);
-        --moss: #3e6b42;
-        --moss-wash: rgba(62, 107, 66, 0.1);
-        --line: #cdc6b8;
-        --line-strong: #b2a990;
-        --shadow: 0 2px 8px rgba(35, 31, 24, 0.1);
-        --shadow-lift: 0 6px 18px rgba(35, 31, 24, 0.14);
-        --font-body: 'Archivo', ui-sans-serif, system-ui, sans-serif;
-        --font-stencil: 'Big Shoulders Stencil Display', 'Archivo', sans-serif;
-        --r-panel: 10px;
-        --r-control: 6px;
-        --r-ref: 3px;
-        --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    /* Self-hosted variable faces (latin): the world's voice never depends on a CDN. */
+    @font-face {
+        font-family: 'Geist';
+        src: url('/fonts/geist-latin.woff2') format('woff2');
+        font-weight: 400 700;
+        font-style: normal;
+        font-display: swap;
     }
 
-    /* The dark room: by system preference, or pinned explicitly with data-theme="dark". */
+    @font-face {
+        font-family: 'Geist Mono';
+        src: url('/fonts/geist-mono-latin.woff2') format('woff2');
+        font-weight: 400 500;
+        font-style: normal;
+        font-display: swap;
+    }
+
+    :root {
+        --paper: #f2f4f7; /* ground */
+        --panel: #ffffff; /* surface */
+        --panel-soft: #eef0f3; /* raised */
+        --kraft: #eef0f3;
+        --kraft-soft: #f6f7f9;
+        --ink: #0a0a0a;
+        --ink-soft: #6b6b6b;
+        --ink-faint: #6f6f6f;
+        --oxide: #141414; /* the primary action is near-black */
+        --oxide-deep: #000000;
+        --oxide-wash: rgba(20, 20, 20, 0.06);
+        --oxide-ink: #ffffff;
+        --data: #1d5fbf; /* the one chart/data hue */
+        --moss: #2e7d32;
+        --moss-wash: #dcfae5;
+        --moss-ink: #04250e;
+        --amber: #92400e;
+        --amber-wash: #fffbeb;
+        --danger: #c4242a;
+        --line: #e6e6e6;
+        --line-strong: #d4d4d4;
+        --shadow: none;
+        --shadow-lift: none;
+        --font-display: 'Geist', Inter, system-ui, sans-serif;
+        --font-body: 'Geist', Inter, system-ui, sans-serif;
+        --font-stencil: 'Geist Mono', ui-monospace, monospace;
+        --r-panel: 8px;
+        --r-control: 6px;
+        --r-ref: 4px;
+        --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    /* The ledger at night: same discipline, inverted primary, lifted hue. */
     :root[data-theme='dark'] {
-        --paper: #17140f;
-        --panel: #201c15;
-        --panel-soft: #262117;
-        --kraft: #3a3122;
-        --kraft-soft: #2e2719;
-        --ink: #ece7dd;
-        --ink-soft: #b3a890;
-        --ink-faint: #8d8166;
-        --oxide: #d05a40;
-        --oxide-deep: #e07a62;
-        --oxide-wash: rgba(208, 90, 64, 0.14);
-        --moss: #86b584;
-        --moss-wash: rgba(134, 181, 132, 0.14);
-        --line: #3d382e;
-        --line-strong: #52493a;
-        --shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-        --shadow-lift: 0 6px 18px rgba(0, 0, 0, 0.55);
+        --paper: #121316;
+        --panel: #1a1c20;
+        --panel-soft: #24262b;
+        --kraft: #24262b;
+        --kraft-soft: #1e2024;
+        --ink: #f2f3f5;
+        --ink-soft: #a6a9ae;
+        --ink-faint: #9a9da3;
+        --oxide: #f2f3f5;
+        --oxide-deep: #ffffff;
+        --oxide-wash: rgba(242, 243, 245, 0.09);
+        --oxide-ink: #121316;
+        --data: #7ba4ec;
+        --moss: #67c77c;
+        --moss-wash: #16301a;
+        --moss-ink: #a8e8b4;
+        --amber: #e5a93b;
+        --amber-wash: #2b2414;
+        --danger: #ff8a80;
+        --line: #26282d;
+        --line-strong: #393c42;
+        --shadow: none;
+        --shadow-lift: none;
     }
 
     @media (prefers-color-scheme: dark) {
         :root:not([data-theme='light']) {
-            --paper: #17140f;
-            --panel: #201c15;
-            --panel-soft: #262117;
-            --kraft: #3a3122;
-            --kraft-soft: #2e2719;
-            --ink: #ece7dd;
-            --ink-soft: #b3a890;
-            --ink-faint: #8d8166;
-            --oxide: #d05a40;
-            --oxide-deep: #e07a62;
-            --oxide-wash: rgba(208, 90, 64, 0.14);
-            --moss: #86b584;
-            --moss-wash: rgba(134, 181, 132, 0.14);
-            --line: #3d382e;
-            --line-strong: #52493a;
-            --shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-            --shadow-lift: 0 6px 18px rgba(0, 0, 0, 0.55);
+            --paper: #121316;
+            --panel: #1a1c20;
+            --panel-soft: #24262b;
+            --kraft: #24262b;
+            --kraft-soft: #1e2024;
+            --ink: #f2f3f5;
+            --ink-soft: #a6a9ae;
+            --ink-faint: #9a9da3;
+            --oxide: #f2f3f5;
+            --oxide-deep: #ffffff;
+            --oxide-wash: rgba(242, 243, 245, 0.09);
+            --oxide-ink: #121316;
+            --data: #7ba4ec;
+            --moss: #67c77c;
+            --moss-wash: #16301a;
+            --moss-ink: #a8e8b4;
+            --amber: #e5a93b;
+            --amber-wash: #2b2414;
+            --danger: #ff8a80;
+            --line: #26282d;
+            --line-strong: #393c42;
+            --shadow: none;
+            --shadow-lift: none;
         }
     }
 
@@ -94,15 +135,24 @@
         background: var(--paper);
         color: var(--ink);
         font-family: var(--font-body);
-        font-size: 15.5px;
-        line-height: 1.55;
-        caret-color: var(--oxide);
-        accent-color: var(--oxide);
+        font-size: 14px;
+        line-height: 1.5;
+        caret-color: var(--ink);
+        accent-color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    h1,
+    h2,
+    h3 {
+        font-family: var(--font-display);
+        font-weight: 700;
+        letter-spacing: -0.01em;
     }
 
     ::selection {
-        background: var(--oxide);
-        color: var(--panel);
+        background: var(--ink);
+        color: var(--paper);
     }
 
     * {
@@ -121,7 +171,7 @@
     }
 
     :focus-visible {
-        outline: 2px solid var(--oxide);
+        outline: 2px solid var(--ink);
         outline-offset: 2px;
         border-radius: var(--r-ref);
     }
@@ -132,151 +182,18 @@
 }
 
 @layer components {
-    /* ---- Top bar -------------------------------------------------------- */
-
-    .fx-top {
-        background: var(--ink);
-        color: var(--paper);
-        border-bottom: 3px solid var(--oxide);
+    .press {
+        transition: transform 160ms var(--ease-out);
     }
 
-    [data-theme='dark'] .fx-top,
-    .fx-top {
-        /* The bar is ink-dark in both rooms; its own tokens stay fixed. */
-        --bar-ink: #ece7dd;
-        --bar-faint: #a89d87;
-        background: #221d15;
-        color: var(--bar-ink);
+    .press:active {
+        transform: scale(0.97);
     }
 
-    .fx-plate {
-        font-family: var(--font-stencil);
-        font-weight: 800;
-        font-size: 1.05rem;
-        letter-spacing: 0.08em;
-        color: #f3ede2;
-        background: var(--oxide);
-        border-radius: var(--r-ref);
-        padding: 0.18rem 0.55rem 0.24rem;
-        line-height: 1;
-    }
-
-    .fx-top-link {
-        color: var(--bar-faint);
-        font-weight: 500;
-        padding: 0.35rem 0.6rem;
-        border-radius: var(--r-control);
-        transition: color 140ms var(--ease-out), background 140ms var(--ease-out);
-    }
-
-    .fx-top-link:hover {
-        color: var(--bar-ink);
-        background: rgba(236, 231, 221, 0.08);
-    }
-
-    .fx-top-link[aria-current='page'] {
-        color: var(--bar-ink);
-        box-shadow: inset 0 -2px 0 var(--oxide);
-        border-radius: var(--r-control) var(--r-control) 0 0;
-    }
-
-    /* ---- Panels and the room ------------------------------------------- */
-
-    .fx-panel {
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: var(--r-panel);
-        box-shadow: var(--shadow);
-    }
-
-    .fx-roomhead {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 1rem 1.5rem;
-        padding: 1.1rem 1.4rem;
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: var(--r-panel);
-        box-shadow: var(--shadow);
-    }
-
-    .fx-initial {
-        display: grid;
-        place-items: center;
-        width: 46px;
-        height: 46px;
-        border-radius: var(--r-control);
-        background: var(--oxide);
-        color: #f3ede2;
-        font-family: var(--font-stencil);
-        font-weight: 800;
-        font-size: 1.45rem;
-        line-height: 1;
-    }
-
-    .fx-tally {
-        font-family: var(--font-stencil);
-        font-weight: 800;
-        font-size: 1.6rem;
-        line-height: 1;
-        color: var(--ink);
-        font-variant-numeric: tabular-nums;
-    }
-
-    .fx-tally-label {
-        font-size: 0.82rem;
-        color: var(--ink-soft);
-    }
-
-    /* ---- Reference & stamps --------------------------------------------- */
-
-    .fx-ref {
-        font-family: var(--font-stencil);
-        font-weight: 700;
-        font-size: 0.82rem;
-        letter-spacing: 0.1em;
-        color: var(--oxide);
-        background: var(--oxide-wash);
-        border-radius: var(--r-ref);
-        padding: 0.1rem 0.4rem 0.14rem;
-        white-space: nowrap;
-    }
-
-    .fx-stamp {
-        display: inline-block;
-        font-family: var(--font-stencil);
-        font-weight: 800;
-        font-size: 0.8rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        line-height: 1;
-        padding: 0.28rem 0.5rem;
-        border-radius: var(--r-ref);
-        border: 1.5px solid currentColor;
-        transform: rotate(-1.5deg);
-    }
-
-    .fx-stamp--pending {
-        color: var(--ink-soft);
-        background: var(--kraft-soft);
-    }
-
-    .fx-stamp--active {
-        color: var(--moss);
-        background: var(--moss-wash);
-    }
-
-    .fx-stamp--ended {
-        color: var(--oxide);
-        background: var(--oxide-wash);
-    }
-
-    /* The one authored moment on a document page: the snapshot settles onto the desk. */
     @keyframes fx-reveal {
         from {
             opacity: 0;
-            transform: translateY(10px);
+            transform: translateY(8px);
         }
         to {
             opacity: 1;
@@ -285,48 +202,195 @@
     }
 
     .fx-reveal {
-        animation: fx-reveal 320ms var(--ease-out) both;
+        animation: fx-reveal 280ms var(--ease-out) both;
+    }
+
+    .fx-shelf > * {
+        animation: fx-reveal 260ms var(--ease-out) backwards;
+    }
+
+    .fx-shelf > *:nth-child(1) { animation-delay: 0ms; }
+    .fx-shelf > *:nth-child(2) { animation-delay: 30ms; }
+    .fx-shelf > *:nth-child(3) { animation-delay: 60ms; }
+    .fx-shelf > *:nth-child(4) { animation-delay: 90ms; }
+    .fx-shelf > *:nth-child(5) { animation-delay: 120ms; }
+    .fx-shelf > *:nth-child(6) { animation-delay: 150ms; }
+    .fx-shelf > *:nth-child(7) { animation-delay: 180ms; }
+    .fx-shelf > *:nth-child(n + 8) { animation-delay: 210ms; }
+
+    /* ---- Top bar: 48px on the page ground, no border, links as plain grey text ----- */
+
+    .fx-top {
+        --bar-ink: var(--ink);
+        --bar-faint: var(--ink-soft);
+        background: var(--paper);
+        color: var(--ink);
+    }
+
+    .fx-plate {
+        display: inline-grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        border-radius: var(--r-ref);
+        background: var(--oxide);
+        color: var(--oxide-ink);
+        font-weight: 700;
+        font-size: 0.8rem;
+        line-height: 1;
+    }
+
+    .fx-top-link {
+        color: var(--ink-soft);
+        font-size: 14px;
+        font-weight: 500;
+        padding: 0.4rem 0.55rem;
+        border-radius: var(--r-ref);
+        transition: color 140ms var(--ease-out);
+    }
+
+    .fx-top-link:hover {
+        color: var(--ink);
+    }
+
+    .fx-top-link[aria-current='page'] {
+        color: var(--ink);
+        font-weight: 700;
+    }
+
+    /* ---- Surfaces: flat, bordered, 8px --------------------------------------------- */
+
+    .fx-panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--r-panel);
+    }
+
+    .fx-roomhead {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.65rem 1.75rem;
+        padding: 0.25rem 0 1rem;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .fx-initial {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: var(--r-control);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        color: var(--ink);
+        font-weight: 700;
+        font-size: 1rem;
+        line-height: 1;
+    }
+
+    .fx-tally {
+        font-weight: 500;
+        font-size: 1.5rem;
+        line-height: 1.15;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
+    }
+
+    .fx-tally--data {
+        color: var(--data);
+    }
+
+    .fx-tally-label {
+        font-size: 12px;
+        color: var(--ink-soft);
+    }
+
+    @media (max-width: 640px) {
+        .fx-roomhead .fx-tally {
+            font-size: 1.15rem;
+        }
+    }
+
+    /* ---- References (Geist Mono, IDs only) and status pills -------------------------- */
+
+    .fx-ref {
+        font-family: var(--font-stencil);
+        font-size: 12px;
+        color: var(--ink-soft);
+        background: var(--panel-soft);
+        border-radius: var(--r-ref);
+        padding: 0.1rem 0.4rem;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .fx-stamp {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1;
+        padding: 0.28rem 0.6rem;
+        border-radius: 999px;
+    }
+
+    .fx-stamp--pending {
+        color: var(--amber);
+        background: var(--amber-wash);
+    }
+
+    .fx-stamp--active {
+        color: var(--moss-ink);
+        background: var(--moss-wash);
+    }
+
+    .fx-stamp--ended {
+        color: var(--ink-soft);
+        background: var(--panel-soft);
     }
 
     @keyframes fx-stamp-in {
         0% {
-            transform: rotate(-1.5deg) scale(1.4);
+            transform: scale(0.94);
             opacity: 0;
         }
         100% {
-            transform: rotate(-1.5deg) scale(1);
+            transform: scale(1);
             opacity: 1;
         }
     }
 
     .fx-stamp--fresh {
-        animation: fx-stamp-in 260ms var(--ease-out) both;
+        animation: fx-stamp-in 160ms var(--ease-out) both;
     }
 
-    /* ---- Controls -------------------------------------------------------- */
+    /* ---- Controls: one near-black primary, grey-pill secondary, 36px ------------------ */
 
     .fx-btn {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 0.45rem;
-        min-height: 44px;
-        padding: 0.45rem 1rem;
+        min-height: 36px;
+        padding: 0.35rem 1rem;
         border-radius: var(--r-control);
-        border: 1px solid var(--line-strong);
-        background: var(--panel);
+        border: 1px solid transparent;
+        background: var(--panel-soft);
         color: var(--ink);
         font-weight: 500;
-        transition: border-color 140ms var(--ease-out), background 140ms var(--ease-out),
-            transform 140ms var(--ease-out);
+        font-size: 14px;
+        transition: background 140ms var(--ease-out), transform 160ms var(--ease-out);
     }
 
     .fx-btn:hover {
-        border-color: var(--ink-faint);
-        background: var(--panel-soft);
+        background: var(--line);
     }
 
     .fx-btn:active {
-        transform: translateY(1px);
+        transform: scale(0.97);
     }
 
     .fx-btn:disabled {
@@ -337,8 +401,8 @@
     .fx-btn--oxide {
         background: var(--oxide);
         border-color: var(--oxide);
-        color: #f6f0e6;
-        font-weight: 600;
+        color: var(--oxide-ink);
+        font-weight: 500;
     }
 
     .fx-btn--oxide:hover {
@@ -346,29 +410,53 @@
         border-color: var(--oxide-deep);
     }
 
+    .fx-btn--danger {
+        background: var(--danger);
+        border-color: var(--danger);
+        color: #ffffff;
+        font-weight: 500;
+    }
+
+    .fx-btn--danger:hover {
+        filter: brightness(0.92);
+        background: var(--danger);
+        border-color: var(--danger);
+    }
+
+    .fx-btn--danger-outline {
+        color: var(--danger);
+        border-color: currentColor;
+        background: var(--panel);
+    }
+
+    .fx-btn--danger-outline:hover {
+        background: var(--panel-soft);
+    }
+
     .fx-btn--quiet {
         border-color: transparent;
         background: transparent;
         color: var(--ink-soft);
-        min-height: 36px;
-        padding: 0.3rem 0.6rem;
+        min-height: 32px;
+        padding: 0.25rem 0.5rem;
     }
 
     .fx-btn--quiet:hover {
         color: var(--ink);
         background: var(--panel-soft);
-        border-color: transparent;
     }
 
     .fx-input,
     .fx-select {
-        min-height: 44px;
-        padding: 0.45rem 0.8rem;
+        min-height: 36px;
+        padding: 0.35rem 0.75rem;
         border-radius: var(--r-control);
         border: 1px solid var(--line-strong);
         background: var(--panel);
         color: var(--ink);
+        font-size: 14px;
         width: 100%;
+        transition: border-color 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
     }
 
     .fx-input::placeholder {
@@ -377,25 +465,26 @@
 
     .fx-input:focus,
     .fx-select:focus {
-        outline: 2px solid var(--oxide);
-        outline-offset: 0;
-        border-color: var(--oxide);
+        outline: none;
+        border-color: var(--ink);
+        box-shadow: 0 0 0 3px var(--oxide-wash);
     }
 
     .fx-check {
-        width: 1.05rem;
-        height: 1.05rem;
+        width: 1rem;
+        height: 1rem;
         border-radius: var(--r-ref);
         border: 1.5px solid var(--line-strong);
-        color: var(--oxide);
+        background-color: var(--panel);
+        color: var(--ink);
     }
 
-    /* ---- The shelf (grid) ------------------------------------------------ */
+    /* ---- The grid of documents --------------------------------------------------------- */
 
     .fx-shelf {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
-        gap: 0.9rem;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 212px), 1fr));
+        gap: 12px;
     }
 
     .fx-card {
@@ -405,22 +494,18 @@
         background: var(--panel);
         border: 1px solid var(--line);
         border-radius: var(--r-panel);
-        box-shadow: var(--shadow);
         overflow: clip;
-        transition: transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out),
-            border-color 140ms var(--ease-out);
+        transition: border-color 140ms var(--ease-out);
     }
 
     .fx-card:hover,
     .fx-card:focus-within {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-lift);
         border-color: var(--line-strong);
     }
 
     .fx-card-face {
         position: relative;
-        aspect-ratio: 5 / 3.5;
+        aspect-ratio: 5 / 3.3;
         background: var(--panel-soft);
         border-bottom: 1px solid var(--line);
         display: grid;
@@ -436,16 +521,17 @@
     }
 
     .fx-card-body {
-        padding: 0.65rem 0.8rem 0.7rem;
+        padding: 0.6rem 0.75rem 0.65rem;
         display: flex;
         flex-direction: column;
-        gap: 0.25rem;
+        gap: 0.2rem;
         min-width: 0;
     }
 
     .fx-card-title {
-        font-weight: 600;
-        line-height: 1.3;
+        font-weight: 500;
+        font-size: 14px;
+        line-height: 1.35;
         overflow-wrap: break-word;
         min-width: 0;
         display: -webkit-box;
@@ -455,44 +541,39 @@
     }
 
     .fx-card-meta {
-        font-size: 0.82rem;
+        font-size: 12px;
         color: var(--ink-soft);
         font-variant-numeric: tabular-nums;
     }
 
-    /* Folder cards read as kraft folder tabs: a die-cut tab shoulder over the kraft face. */
     .fx-folder {
         background: var(--kraft-soft);
     }
 
     .fx-folder .fx-card-face {
-        position: relative;
         background: var(--kraft);
-        border-bottom-color: color-mix(in srgb, var(--kraft) 70%, var(--ink) 12%);
+        border-bottom-color: var(--line);
         color: var(--ink-soft);
-        aspect-ratio: 5 / 2.1;
+        aspect-ratio: 5 / 2;
     }
 
-    .fx-folder .fx-card-face::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 38%;
-        height: 13px;
-        background: color-mix(in srgb, var(--kraft) 85%, var(--ink) 15%);
-        border-radius: 0 0 8px 0;
-    }
-
-    @media (max-width: 480px) {
+    @media (max-width: 639px) {
         .fx-folder .fx-card-face {
-            aspect-ratio: auto;
-            height: 100px;
+            display: none;
+        }
+
+        .fx-folder .fx-card-body {
+            padding: 0.6rem 0.75rem 0.6rem 2.5rem;
+            min-height: 52px;
+            justify-content: center;
+        }
+
+        .fx-folder .fx-card-check {
+            top: 50%;
+            transform: translateY(-50%);
         }
     }
 
-    /* Selection chrome stays out of the way until it is wanted: the checkbox chip shows on
-       hover/focus, when checked, once any selection exists — and always on touch screens. */
     .fx-card-check {
         opacity: 0;
         transition: opacity 120ms var(--ease-out);
@@ -511,27 +592,29 @@
         }
     }
 
-    /* ---- The register (list) --------------------------------------------- */
+    /* ---- The register: rules and alignment, 44px rows, no zebra ------------------------- */
 
     .fx-register {
         width: 100%;
         border-collapse: collapse;
         font-variant-numeric: tabular-nums;
+        font-size: 14px;
     }
 
     .fx-register th {
         text-align: left;
-        font-size: 0.82rem;
-        font-weight: 500;
+        font-size: 12px;
+        font-weight: 400;
         color: var(--ink-soft);
-        padding: 0.55rem 0.75rem;
-        border-bottom: 1px solid var(--line-strong);
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid var(--line);
     }
 
     .fx-register td {
-        padding: 0.55rem 0.75rem;
+        padding: 0.6rem 0.75rem;
         border-bottom: 1px solid var(--line);
         vertical-align: middle;
+        height: 44px;
     }
 
     .fx-register tbody tr {
@@ -539,27 +622,25 @@
     }
 
     .fx-register tbody tr:hover {
-        background: var(--panel-soft);
+        background: var(--kraft-soft);
     }
 
-    /* ---- Upload tray ------------------------------------------------------ */
+    /* ---- Upload zone ---------------------------------------------------------------------- */
 
     .fx-drop {
-        border: 2px dashed var(--line-strong);
+        border: 1.5px dashed var(--line-strong);
         border-radius: var(--r-panel);
-        background: var(--kraft-soft);
+        background: var(--panel-soft);
         color: var(--ink-soft);
         transition: border-color 140ms var(--ease-out), background 140ms var(--ease-out);
     }
 
     .fx-drop:hover,
     .fx-drop.is-over {
-        border-color: var(--oxide);
-        background: var(--oxide-wash);
+        border-color: var(--ink);
         color: var(--ink);
     }
 
-    /* FilePond takes the room's tokens. */
     .filepond--root {
         font-family: var(--font-body);
         margin-bottom: 0;
@@ -574,15 +655,15 @@
     }
 
     .filepond--label-action {
-        color: var(--oxide);
-        text-decoration-color: var(--oxide);
+        color: var(--ink);
+        text-decoration-color: var(--ink);
     }
 
     .filepond--item-panel {
         background: var(--ink);
     }
 
-    /* ---- Empty state ------------------------------------------------------ */
+    /* ---- Empty states ----------------------------------------------------------------------- */
 
     .fx-empty {
         display: grid;
@@ -593,14 +674,13 @@
         color: var(--ink-soft);
     }
 
-    /* ---- Menus (row actions) ---------------------------------------------- */
+    /* ---- Menus --------------------------------------------------------------------------------- */
 
     .fx-menu {
-        min-width: 11rem;
+        min-width: 11.5rem;
         background: var(--panel);
         border: 1px solid var(--line-strong);
-        border-radius: var(--r-control);
-        box-shadow: var(--shadow-lift);
+        border-radius: var(--r-panel);
         padding: 0.3rem;
         z-index: 40;
     }
@@ -614,7 +694,7 @@
         padding: 0.45rem 0.6rem;
         border-radius: var(--r-ref);
         color: var(--ink);
-        font-size: 0.92rem;
+        font-size: 14px;
         text-align: left;
     }
 
@@ -624,17 +704,17 @@
     }
 
     .fx-menu .fx-menu-danger {
-        color: var(--oxide);
+        color: var(--danger);
     }
 
-    /* ---- Crumbs ----------------------------------------------------------- */
+    /* ---- Breadcrumbs ------------------------------------------------------------------------------ */
 
     .fx-crumbs {
         display: flex;
         align-items: center;
         flex-wrap: wrap;
-        gap: 0.15rem;
-        font-size: 0.92rem;
+        gap: 0.1rem;
+        font-size: 13px;
         color: var(--ink-soft);
         min-width: 0;
     }
@@ -653,29 +733,29 @@
 
     .fx-crumbs a[aria-current='page'] {
         color: var(--ink);
-        font-weight: 600;
+        font-weight: 700;
     }
 
-    /* ---- Notices ---------------------------------------------------------- */
+    /* ---- Notices ------------------------------------------------------------------------------------ */
 
     .fx-note {
         border: 1px solid var(--line-strong);
-        border-left: 1px solid var(--line-strong);
-        background: var(--kraft-soft);
+        background: var(--panel-soft);
         color: var(--ink);
-        border-radius: var(--r-control);
-        padding: 0.7rem 0.9rem;
-        font-size: 0.95rem;
+        border-radius: var(--r-panel);
+        padding: 0.65rem 0.9rem;
+        font-size: 14px;
     }
 
     .fx-note--good {
         background: var(--moss-wash);
         border-color: var(--moss);
+        color: var(--moss-ink);
     }
 
     .fx-note--bad {
-        background: var(--oxide-wash);
-        border-color: var(--oxide);
+        background: var(--amber-wash);
+        border-color: var(--amber);
     }
 }
 

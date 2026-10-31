@@ -24,8 +24,8 @@
                 </div>
                 <button type="submit" class="fx-btn fx-btn--oxide"><x-fx.icon name="share" /> {{ __('Share') }}</button>
             </form>
-            @error('email')<p class="mt-2 text-sm" style="color: var(--oxide);">{{ $message }}</p>@enderror
-            @error('days')<p class="mt-2 text-sm" style="color: var(--oxide);">{{ $message }}</p>@enderror
+            @error('email')<p class="mt-2 text-sm" style="color: var(--danger);">{{ $message }}</p>@enderror
+            @error('days')<p class="mt-2 text-sm" style="color: var(--danger);">{{ $message }}</p>@enderror
             @if ($notice)<p class="mt-3 text-sm" style="color: var(--moss);" role="status">{{ $notice }}</p>@endif
 
             <div class="mt-5" x-data="{ copied: false }">

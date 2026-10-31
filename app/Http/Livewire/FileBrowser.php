@@ -103,6 +103,8 @@ class FileBrowser extends Component
             'documents' => Obj::where('objectable_type', 'file')->whereNull('trashed_at')->count(),
             'folders' => Obj::where('objectable_type', 'folder')->whereNull('trashed_at')->whereNotNull('parent_id')->count(),
             'bytes' => (int) File::sum('size'), // disk truth: the trash still occupies it
+            // The ledger's one data figure: how many documents are visible outside the company.
+            'shared' => FileShare::active()->whereIn('file_id', File::pluck('id'))->distinct('file_id')->count('file_id'),
         ];
     }
 

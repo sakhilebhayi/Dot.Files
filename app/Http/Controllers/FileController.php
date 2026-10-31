@@ -85,7 +85,7 @@ class FileController extends Controller
         $pin = FilePin::where('user_id', $request->user()->id)->where('file_id', $file->id)->first();
         $pin ? $pin->delete() : FilePin::create(['user_id' => $request->user()->id, 'file_id' => $file->id]);
 
-        return back()->with('status', $pin ? $file->name.' is no longer pinned.' : $file->name.' is pinned to the front of your room.');
+        return back()->with('status', $pin ? $file->name.' is no longer pinned.' : $file->name.' is pinned.');
     }
 
     /**

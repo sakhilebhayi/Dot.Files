@@ -1,10 +1,9 @@
 <nav x-data="{ open: false, account: false }" class="fx-top" @keydown.escape.window="open = false; account = false">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-14 gap-4">
+        <div class="flex items-center justify-between h-12 gap-4">
             <div class="flex items-center gap-5 min-w-0">
-                <a href="{{ route('files') }}" class="flex items-center gap-2.5" aria-label="Dot.Files home">
-                    <span class="fx-plate">FILES</span>
-                    <span class="hidden md:block text-sm" style="color: var(--bar-faint);">Dot.Files</span>
+                <a href="{{ route('files') }}" class="flex items-center press" aria-label="Dot.Files home">
+                    <img src="{{ asset('images/logo.png') }}" alt="Dot.Files" class="h-8 w-auto">
                 </a>
 
                 <div class="hidden sm:flex items-center gap-1">
@@ -32,8 +31,8 @@
             <div class="hidden sm:block relative">
                 <button type="button" class="fx-top-link flex items-center gap-2" @click="account = ! account"
                         :aria-expanded="account.toString()" aria-haspopup="menu">
-                    <span class="inline-grid place-items-center w-7 h-7 rounded"
-                          style="background: var(--oxide); color: #f3ede2; font-family: var(--font-stencil); font-weight: 800;">
+                    <span class="inline-grid place-items-center w-6 h-6 rounded-md text-xs font-semibold"
+                          style="background: var(--oxide-wash); color: var(--oxide);">
                         {{ mb_strtoupper(mb_substr(Auth::user()->currentTeam?->name ?? Auth::user()->name, 0, 1)) }}
                     </span>
                     <span class="max-w-[14rem] truncate">{{ Auth::user()->currentTeam?->name ?? Auth::user()->name }}</span>
@@ -98,7 +97,7 @@
     </div>
 
     {{-- Mobile menu --}}
-    <div x-cloak x-show="open" class="sm:hidden border-t px-4 pb-4 pt-2 space-y-1" style="border-color: rgba(236,231,221,0.12);">
+    <div x-cloak x-show="open" class="sm:hidden border-t px-4 pb-4 pt-2 space-y-1" style="border-color: var(--line);">
         <a href="{{ route('files') }}" class="fx-top-link block">{{ __('Files') }}</a>
         <a href="{{ route('shared') }}" class="fx-top-link block">{{ __('Shared with me') }}</a>
         <a href="{{ route('approvals') }}" class="fx-top-link block">{{ __('Sharing approvals') }}</a>
@@ -106,7 +105,7 @@
         @if (Auth::user()->is_platform_operator)
             <a href="{{ route('operator.deletion-requests.index') }}" class="fx-top-link block">{{ __('Operator queue') }}</a>
         @endif
-        <div class="border-t my-2" style="border-color: rgba(236,231,221,0.12);"></div>
+        <div class="border-t my-2" style="border-color: var(--line);"></div>
         <p class="px-2.5 text-xs" style="color: var(--bar-faint);">{{ Auth::user()->name }} · {{ Auth::user()->currentTeam?->name }}</p>
         <a href="{{ route('profile.show') }}" class="fx-top-link block">{{ __('Profile') }}</a>
         @if (Laravel\Jetstream\Jetstream::hasTeamFeatures())

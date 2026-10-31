@@ -40,7 +40,7 @@
                         <span class="text-xs" style="color: var(--ink-faint);">{{ __('registered with InfoDot') }}</span>
                     @endif
                     @if ($pinned)
-                        <span class="fx-stamp fx-stamp--active">{{ __('Pinned') }}</span>
+                        <span class="fx-stamp fx-stamp--ended">{{ __('Pinned') }}</span>
                     @endif
                 </div>
 
