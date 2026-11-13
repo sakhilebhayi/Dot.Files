@@ -122,6 +122,23 @@ return [
         'secret' => env('INFODOT_SERVICE_SECRET'),
         'timeout' => (int) env('INFODOT_REDEEM_TIMEOUT', 5),
         'provision' => (bool) env('INFODOT_PROVISION_USERS', true),
+        // R-50: where this app asks whether a company still holds Dot.Files. Derived from the redeem URL when
+        // not set: {infodot}/api/ecosystem/companies/{team_uuid}/platforms.
+        'companies_url' => env('INFODOT_COMPANIES_URL'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Entitlement check during a session (R-50)
+    |--------------------------------------------------------------------------
+    | InfoDot decides which companies hold which platform. While someone is
+    | signed in, this app asks InfoDot whether their current company still
+    | holds Dot.Files (cached 10 minutes per company, 60 seconds after a
+    | failure) and shows a plain refusal page when it does not. Any failure to
+    | get an answer lets the person carry on: an outage at InfoDot never locks
+    | a company out. Set false to stop asking altogether.
+    */
+
+    'entitlement_check' => (bool) env('FILES_ENTITLEMENT_CHECK', true),
 
 ];

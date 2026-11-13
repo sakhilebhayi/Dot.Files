@@ -104,13 +104,15 @@
                     <img src="{{ asset($logoLightPath ?? 'images/logo.png') }}" alt="Dot.Files" style="height: 40px; width: auto;">
                 </a>
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    @auth
+                    {{-- A page that refuses the workspace itself (R-50) passes $plainHeader: a button back into it would only loop. --}}
+                    @if ($plainHeader ?? false)
+                    @elseauth
                         <a href="{{ route('dashboard') }}" class="press" style="padding: 10px 20px; background: var(--accent); color: #2b2a25; font-family: var(--font-display); font-weight: 600; font-size: 14px; border-radius: 999px; text-decoration: none;">Dashboard</a>
                     @else
                         @if (Route::has('login'))
                             <a href="{{ route('login') }}" class="link-underline" style="color: rgba(255,255,255,0.85); font-size: 14px; text-decoration: none; padding-bottom: 1px;">Sign in</a>
                         @endif
-                    @endauth
+                    @endif
                 </div>
             </nav>
         </header>
