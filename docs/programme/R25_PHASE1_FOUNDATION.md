@@ -47,7 +47,7 @@ Suite after: **122 passed** (6 new security regressions + 4 header tests).
    no longer overwrites supplied uuids) — the cross-platform reference is `file uuid` + InfoDot's
    `infodot_reference`, never numeric ids.
 5. **Platform integration (Phase 3)** reuses the proven per-platform signed-HMAC pattern already
-   used by InfoDot↔Files and Billing (`X-InfoDot-*` headers, per-platform secrets, 300s window),
+   used by InfoDot↔Files (`X-InfoDot-*` headers, per-platform secrets, 300s window),
    extended with: per-platform SCOPES (`files:write`, `files:read`, `files:move`), idempotency
    keys on writes, and signatures bound to method+path (closing the audit's note). Platforms get
    folders under a `Platform Files` area per tenant; move/copy semantics per the brief §5, with

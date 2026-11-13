@@ -34,7 +34,7 @@ class PlatformFileApiTest extends TestCase
 
         Storage::fake('local');
         config(['scout.driver' => 'collection']);
-        config(['ecosystem.platform_secrets' => ['docs' => 'secret-docs', 'billing' => 'secret-billing']]);
+        config(['ecosystem.platform_secrets' => ['docs' => 'secret-docs', 'finance' => 'secret-finance']]);
 
         $this->owner = User::factory()->withPersonalTeam()->create(['email' => 'owner@acme.test']);
         $this->acme = Team::forceCreate(['user_id' => $this->owner->id, 'name' => 'Acme', 'personal_team' => false, 'infodot_team_uuid' => (string) Str::uuid()]);
@@ -79,7 +79,7 @@ class PlatformFileApiTest extends TestCase
         // Wrong secret.
         $this->signed('docs', 'wrong-secret', '/api/platform/files/meta', $payload)->assertUnauthorized();
         // Another platform's (valid) secret under the wrong name.
-        $this->signed('docs', 'secret-billing', '/api/platform/files/meta', $payload)->assertUnauthorized();
+        $this->signed('docs', 'secret-finance', '/api/platform/files/meta', $payload)->assertUnauthorized();
         // A platform nobody configured.
         $this->signed('charts', 'anything', '/api/platform/files/meta', $payload)->assertUnauthorized();
         // A stale signature.
@@ -115,10 +115,10 @@ class PlatformFileApiTest extends TestCase
     public function test_a_platform_reaches_only_its_own_files_in_only_the_named_company(): void
     {
         $mine = $this->storeFor($this->acme);
-        $theirs = $this->storeFor($this->globex, 'billing', 'secret-billing', 'Statement.pdf');
+        $theirs = $this->storeFor($this->globex, 'finance', 'secret-finance', 'Statement.pdf');
 
         // Another platform, same company: nothing.
-        $this->signed('billing', 'secret-billing', '/api/platform/files/fetch',
+        $this->signed('finance', 'secret-finance', '/api/platform/files/fetch',
             ['team_uuid' => $this->acme->infodot_team_uuid, 'uuid' => $mine['uuid']])->assertNotFound();
 
         // Same platform, wrong company in the signed body: nothing.
@@ -143,8 +143,8 @@ class PlatformFileApiTest extends TestCase
             ->assertOk()->assertJsonPath('name', 'Invoice INV-204.pdf')
             ->assertJsonPath('content_b64', base64_encode('%PDF-1.4 real bytes'));
 
-        // And billing still reaches its own in Globex.
-        $this->signed('billing', 'secret-billing', '/api/platform/files/meta',
+        // And finance still reaches its own in Globex.
+        $this->signed('finance', 'secret-finance', '/api/platform/files/meta',
             ['team_uuid' => $this->globex->infodot_team_uuid, 'uuid' => $theirs['uuid']])
             ->assertOk()->assertJsonPath('name', 'Statement.pdf');
     }
@@ -152,7 +152,7 @@ class PlatformFileApiTest extends TestCase
     public function test_list_pages_through_only_the_callers_files(): void
     {
         $first = $this->storeFor($this->acme, 'docs', 'secret-docs', 'One.pdf');
-        $this->storeFor($this->acme, 'billing', 'secret-billing', 'Not-yours.pdf');
+        $this->storeFor($this->acme, 'finance', 'secret-finance', 'Not-yours.pdf');
         $second = $this->storeFor($this->acme, 'docs', 'secret-docs', 'Two.pdf');
 
         $page = $this->signed('docs', 'secret-docs', '/api/platform/files/list',

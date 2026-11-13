@@ -116,6 +116,18 @@ class FileBrowser extends Component
         ];
     }
 
+    /**
+     * First run (R-50): this company has never filed anything — no folder, no document, nothing
+     * in the trash. Only then does the workspace open on the fuller arrival instead of the band.
+     * Obj carries the team scope, so this reads the current company's own records only.
+     */
+    public function getIsFirstRunProperty(): bool
+    {
+        return empty($this->query)
+            && $this->object->parent_id === null
+            && ! Obj::whereNotNull('parent_id')->exists();
+    }
+
     /** Pending share requests waiting on an owner/admin of this company (R-26). */
     public function getPendingSharesProperty(): int
     {
