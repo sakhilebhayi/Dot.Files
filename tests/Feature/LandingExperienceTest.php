@@ -129,7 +129,8 @@ class LandingExperienceTest extends TestCase
         $this->assertSame(1, substr_count($html, 'data-primary-action'), 'exactly one primary action');
         $this->assertStringContainsString('data-landing="band"', $html);
         $this->assertStringNotContainsString('data-landing="first-run"', $html);
-        $this->assertStringContainsString('Hello '.Str::before($user->name, ' ').'. This is the filing room for Acme Mining Supplies.', $html);
+        // R-51: the band's sentence is now the state-based headline; with nothing waiting it is the plain count.
+        $this->assertStringContainsString('3 documents are filed for Acme Mining Supplies.', $html);
 
         // Every figure in the band is the seeded records, nothing else.
         $this->assertSame('3', $this->tally($html, 'documents'));

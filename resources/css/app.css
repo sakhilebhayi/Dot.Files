@@ -982,3 +982,922 @@ body {
         scroll-behavior: auto !important;
     }
 }
+
+/*
+ * The dashboard (R-51): the working screen at /files. Bar, one region whose two panes scroll, a foot.
+ * Written unlayered on purpose: Tailwind's utilities sit in a later layer and would otherwise win over
+ * the shell rules on the wrapper they decorate. Everything here is opt-in through the `.fx-shell-desk`
+ * wrapper (layouts/app.blade.php, shell="desk"), so no other page changes.
+ * Spacing runs 4/8/12/16/24/32/48; type 12/13/14/16/20/24; radius 4/6/8; rows 52 (56 on a phone).
+ */
+:root {
+    --s1: 4px;
+    --s2: 8px;
+    --s3: 12px;
+    --s4: 16px;
+    --s5: 24px;
+    --s6: 32px;
+    --s7: 48px;
+    --fx-row: 52px;
+    --fx-gutter: 32px;
+    --fx-detail: 400px;
+}
+
+.fx-skip {
+    position: fixed;
+    left: var(--s4);
+    top: -64px;
+    z-index: 70;
+    padding: var(--s2) var(--s4);
+    border-radius: var(--r-control);
+    background: var(--oxide);
+    color: var(--oxide-ink);
+}
+
+.fx-skip:focus {
+    top: var(--s2);
+}
+
+.fx-deskroot {
+    position: relative;
+}
+
+.fx-region {
+    width: 100%;
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0 var(--fx-gutter);
+}
+
+.fx-region--plain {
+    padding-top: var(--s5);
+    padding-bottom: var(--s6);
+}
+
+/* ---- arrival ------------------------------------------------------------------------------- */
+.fx-arrive {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--s4) var(--s5);
+    padding: var(--s4) 0 var(--s5);
+}
+
+.fx-arrive-logo {
+    align-self: start;
+}
+
+.fx-arrive-logo img {
+    display: block;
+    width: 56px;
+    height: 56px;
+}
+
+.fx-headline {
+    margin: 0;
+    max-width: 40ch;
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+}
+
+.fx-subline {
+    margin: var(--s1) 0 0;
+    max-width: 78ch;
+    color: var(--ink-soft);
+    font-size: 14px;
+}
+
+.fx-arrive .fx-wayback {
+    margin-top: var(--s2);
+}
+
+.fx-arrive-art {
+    display: block;
+    height: 56px;
+    width: auto;
+    max-width: 280px;
+    color: var(--ink);
+}
+
+.fx-arrive-side {
+    display: grid;
+    justify-items: end;
+    gap: var(--s2);
+}
+
+.fx-arrive-side .fx-btn--oxide {
+    min-height: 44px;
+    padding: 0.5rem 1.25rem;
+}
+
+.fx-quiet-link {
+    color: var(--ink-soft);
+    font-size: 14px;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition: color 140ms var(--ease-out);
+}
+
+.fx-quiet-link:hover {
+    color: var(--ink);
+}
+
+/* ---- the desk: register (master) and record or room (detail) ------------------------------- */
+.fx-desk {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--fx-detail);
+    border-top: 1px solid var(--line);
+}
+
+.fx-master {
+    min-width: 0;
+    min-height: 0;
+    padding-right: var(--s5);
+}
+
+.fx-master-top {
+    display: grid;
+    gap: var(--s2);
+    padding-top: var(--s3);
+}
+
+.fx-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s2);
+    min-height: 48px;
+    padding-bottom: var(--s3);
+}
+
+.fx-crumbs--bar {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    min-width: 0;
+}
+
+.fx-filter {
+    flex: 1 1 300px;
+    max-width: 400px;
+    min-width: 180px;
+}
+
+.fx-seg {
+    display: flex;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--r-control);
+    overflow: hidden;
+}
+
+.fx-seg .fx-btn {
+    border-radius: 0;
+    min-height: 34px;
+    padding: 0 var(--s3);
+}
+
+.fx-seg [aria-pressed='true'] {
+    background: var(--oxide-wash);
+    color: var(--ink);
+}
+
+.fx-selbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s2);
+    min-height: 48px;
+    padding: var(--s1) var(--s3);
+    margin-bottom: var(--s3);
+    background: var(--oxide-wash);
+    border-radius: var(--r-control);
+}
+
+.fx-selbar > p {
+    flex: 1 1 auto;
+}
+
+.fx-selbar form {
+    border-top: 1px solid var(--line-strong);
+}
+
+.fx-newfolder {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s2);
+    padding: var(--s2) 0;
+}
+
+.fx-scroller {
+    min-height: 0;
+}
+
+/* register: two-line rows, sticky head, one hairline per row */
+.fx-register {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.fx-register th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    height: 30px;
+    padding: 0 var(--s3);
+    background: var(--paper);
+    white-space: nowrap;
+}
+
+.fx-register td {
+    height: var(--fx-row);
+    padding: 0 var(--s3);
+    border-bottom: 1px solid var(--line);
+}
+
+.fx-c-check {
+    width: 36px;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    text-align: center;
+}
+
+.fx-c-size {
+    width: 92px;
+    white-space: nowrap;
+}
+
+.fx-c-filed {
+    width: 112px;
+    white-space: nowrap;
+}
+
+.fx-c-out {
+    width: 188px;
+    white-space: nowrap;
+}
+
+.fx-c-act {
+    width: 48px;
+    padding: 0 !important;
+    text-align: center;
+}
+
+.fx-num {
+    text-align: right;
+}
+
+.fx-sort {
+    all: unset;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--ink-soft);
+}
+
+.fx-sort:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+
+.fx-register th[aria-sort='ascending'] .fx-sort,
+.fx-register th[aria-sort='descending'] .fx-sort {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.fx-row {
+    cursor: pointer;
+}
+
+.fx-row[aria-selected='true'] {
+    background: var(--oxide-wash);
+}
+
+.fx-row[aria-selected='true'] .fx-name {
+    font-weight: 700;
+}
+
+.fx-row:focus-visible {
+    outline-offset: -2px;
+}
+
+.fx-row .fx-check {
+    opacity: 0;
+}
+
+.fx-row:hover .fx-check,
+.fx-row:focus-within .fx-check,
+.fx-row[aria-selected='true'] .fx-check,
+.fx-row .fx-check:checked {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .fx-row .fx-check {
+        opacity: 1;
+    }
+}
+
+.fx-cell-name {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    min-width: 0;
+}
+
+.fx-kind-ico {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    flex: none;
+    color: var(--ink-soft);
+}
+
+/* a real snapshot where Files holds one (R-26): the first page, cropped to the thumb */
+.fx-thumb {
+    display: block;
+    flex: none;
+    width: 30px;
+    height: 38px;
+    object-fit: cover;
+    object-position: top;
+    border-radius: var(--r-ref);
+    background: var(--panel-soft);
+    box-shadow: 0 0 0 1px var(--line);
+}
+
+.fx-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.fx-name:hover {
+    text-decoration: underline;
+}
+
+.fx-line2 {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--ink-soft);
+}
+
+.fx-soft {
+    color: var(--ink-soft);
+}
+
+.fx-dots {
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--r-control);
+    color: var(--ink-soft);
+    transition: background 120ms var(--ease-out), color 120ms var(--ease-out);
+}
+
+.fx-dots:hover {
+    background: var(--panel-soft);
+    color: var(--ink);
+}
+
+.fx-menu--fixed {
+    position: fixed;
+    z-index: 60;
+    text-align: left;
+}
+
+.fx-empty--records {
+    border-top: 1px solid var(--line);
+}
+
+.fx-empty-art {
+    display: block;
+    height: 40px;
+    width: auto;
+    color: var(--ink-faint);
+}
+
+/* ---- detail ------------------------------------------------------------------------------- */
+.fx-detail {
+    min-width: 0;
+    min-height: 0;
+    padding: var(--s4) 0 var(--s5) var(--s5);
+    border-left: 1px solid var(--line);
+}
+
+.fx-detail-body.is-loading {
+    opacity: 0.4;
+    transition: opacity 120ms var(--ease-out);
+}
+
+.fx-rec-title {
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.fx-h3 {
+    margin: 0 0 var(--s2);
+    font-size: 16px;
+    line-height: 1.3;
+}
+
+.fx-stamps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s2);
+    margin: var(--s3) 0 var(--s4);
+    min-height: 22px;
+}
+
+.fx-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s2);
+    margin: 0 0 var(--s4);
+}
+
+.fx-push {
+    margin-left: auto;
+}
+
+.fx-btn--outline {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.fx-btn--outline:hover {
+    background: var(--panel-soft);
+}
+
+.fx-btn--danger-quiet {
+    color: var(--danger);
+}
+
+.fx-snap {
+    display: grid;
+    place-items: center;
+    height: 160px;
+    margin-bottom: var(--s4);
+    overflow: hidden;
+    border-radius: var(--r-ref);
+    background: var(--panel-soft);
+    color: var(--ink-faint);
+}
+
+.fx-snap img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+
+.fx-snap-ico {
+    width: 36px !important;
+    height: 36px !important;
+}
+
+.fx-rows {
+    margin: 0 0 var(--s5);
+}
+
+.fx-rows > div {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: var(--s3);
+    align-items: center;
+    min-height: 36px;
+    border-top: 1px solid var(--line);
+}
+
+.fx-rows dt {
+    color: var(--ink-soft);
+}
+
+.fx-rows dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.fx-vers {
+    margin: 0 0 var(--s2);
+    padding: 0;
+    list-style: none;
+}
+
+.fx-vers li {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--s2);
+    min-height: 44px;
+    border-top: 1px solid var(--line);
+}
+
+.fx-vers .fx-soft {
+    font-size: 13px;
+}
+
+.fx-back {
+    margin: var(--s3) 0 0;
+}
+
+.fx-sec {
+    margin-bottom: var(--s5);
+}
+
+.fx-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fx-list li {
+    border-top: 1px solid var(--line);
+}
+
+.fx-list a {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    min-height: var(--fx-row);
+    padding: var(--s2) 0;
+    text-decoration: none;
+}
+
+.fx-list a > span:not(.fx-when) {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.fx-list a:hover .fx-t {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.fx-t {
+    display: block;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.fx-s {
+    display: block;
+    font-size: 13px;
+    color: var(--ink-soft);
+    overflow-wrap: anywhere;
+}
+
+.fx-when {
+    flex: none;
+    font-size: 13px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+}
+
+.fx-warn {
+    color: var(--amber);
+    font-weight: 500;
+}
+
+.fx-empty-line {
+    margin: 0;
+    padding: var(--s3) 0;
+    border-top: 1px solid var(--line);
+    color: var(--ink-soft);
+}
+
+/* ---- foot --------------------------------------------------------------------------------- */
+.fx-foot {
+    border-top: 1px solid var(--line);
+}
+
+.fx-foot-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s1) var(--s5);
+    width: 100%;
+    max-width: 80rem;
+    min-height: 36px;
+    margin: 0 auto;
+    padding: 0 var(--fx-gutter);
+    font-size: 13px;
+    color: var(--ink-soft);
+}
+
+.fx-foot b {
+    color: var(--ink);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.fx-foot b.fx-hue {
+    color: var(--data);
+    font-weight: 600;
+}
+
+.fx-foot a {
+    text-underline-offset: 3px;
+}
+
+.fx-own {
+    margin-left: auto;
+}
+
+/* ---- the locked viewport: only on a desktop window tall enough to hold it ------------------- */
+@media (min-width: 901px) and (min-height: 641px) {
+    .fx-shell-desk {
+        height: 100dvh;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .fx-shell-desk > .fx-desk-main {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .fx-shell-desk .fx-deskroot {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .fx-shell-desk .fx-region {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .fx-shell-desk .fx-region--plain {
+        overflow: auto;
+    }
+
+    .fx-shell-desk .fx-desk {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .fx-shell-desk .fx-master {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .fx-shell-desk .fx-scroller,
+    .fx-shell-desk .fx-detail {
+        overflow: auto;
+    }
+}
+
+@media (max-width: 1099px) {
+    :root {
+        --fx-detail: 340px;
+    }
+
+    .fx-arrive-art {
+        display: none;
+    }
+
+    .fx-arrive {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+}
+
+/* below 901px the page scrolls as a document, rows open the record page, the room stacks under the register */
+@media (max-width: 900px) {
+    :root {
+        --fx-gutter: 24px;
+        --fx-row: 56px;
+    }
+
+    .fx-arrive {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .fx-arrive-side {
+        grid-column: 1 / -1;
+        justify-items: stretch;
+    }
+
+    .fx-arrive-side .fx-btn--oxide {
+        min-height: 48px;
+    }
+
+    .fx-quiet-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+
+    .fx-desk {
+        display: block;
+    }
+
+    .fx-master {
+        padding-right: 0;
+    }
+
+    .fx-detail {
+        padding: var(--s5) 0;
+        border-top: 1px solid var(--line);
+        border-left: 0;
+    }
+
+    .fx-room {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 var(--s6);
+    }
+
+    .fx-row[aria-selected='true'] {
+        background: none;
+    }
+
+    .fx-row[aria-selected='true'] .fx-name {
+        font-weight: 500;
+    }
+
+    .fx-filter {
+        flex: 1 1 100%;
+        order: 5;
+    }
+
+    .fx-select,
+    .fx-btn {
+        min-height: 44px;
+    }
+
+    .fx-seg .fx-btn {
+        min-height: 42px;
+    }
+
+    .fx-dots {
+        width: 44px;
+        height: 44px;
+    }
+
+    .fx-c-out {
+        display: none;
+    }
+
+    .fx-own {
+        flex-basis: 100%;
+        margin-left: 0;
+    }
+
+    .fx-foot-row {
+        padding-top: var(--s2);
+        padding-bottom: var(--s2);
+    }
+}
+
+@media (max-width: 600px) {
+    :root {
+        --fx-gutter: 16px;
+    }
+
+    .fx-arrive-logo img {
+        width: 48px;
+        height: 48px;
+    }
+
+    .fx-headline {
+        font-size: 22px;
+    }
+
+    .fx-room {
+        display: block;
+    }
+
+    .fx-c-filed {
+        display: none;
+    }
+
+    .fx-c-size {
+        width: 84px;
+    }
+
+    .fx-kind-ico {
+        display: none;
+    }
+
+    .fx-crumbs--bar {
+        flex: 1 1 100%;
+        flex-wrap: wrap;
+    }
+}
+
+/* ---- motion: content moves, chrome never does; compositor properties only, ease-out ---------- */
+@media (prefers-reduced-motion: no-preference) {
+    @keyframes fx-rise {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+    }
+
+    @keyframes fx-swap {
+        from {
+            opacity: 0;
+            transform: translateY(4px);
+        }
+    }
+
+    @keyframes fx-grow {
+        from {
+            opacity: 0;
+            transform: scaleY(0.02);
+        }
+    }
+
+    /* one orchestrated arrival: the band, then the rows, then the figures */
+    .fx-arrive-logo,
+    .fx-arrive-text,
+    .fx-arrive-side {
+        animation: fx-rise 320ms var(--ease-out) backwards;
+    }
+
+    .fx-arrive-text {
+        animation-delay: 60ms;
+    }
+
+    .fx-arrive-side {
+        animation-delay: 120ms;
+    }
+
+    .fx-spine {
+        transform-box: fill-box;
+        transform-origin: bottom;
+        animation: fx-grow 420ms var(--ease-out) backwards;
+        animation-delay: calc(140ms + var(--i, 0) * 14ms);
+    }
+
+    .fx-row:nth-child(-n + 10) {
+        animation: fx-rise 260ms var(--ease-out) backwards;
+        animation-delay: calc(180ms + var(--i, 0) * 24ms);
+    }
+
+    /* selecting a record: the panel's content settles in (it is a new keyed element, so it plays once per selection) */
+    .fx-detail-body {
+        animation: fx-swap 160ms var(--ease-out) backwards;
+    }
+
+    .fx-snap img {
+        animation: fx-swap 200ms var(--ease-out) 60ms backwards;
+    }
+
+    .fx-thumb,
+    .fx-list a,
+    .fx-dots {
+        transition: background 120ms var(--ease-out), color 120ms var(--ease-out);
+    }
+
+    .fx-row {
+        transition: background 120ms var(--ease-out);
+    }
+
+    .fx-row:hover {
+        background: var(--kraft-soft);
+    }
+
+    .fx-row[aria-selected='true']:hover {
+        background: var(--oxide-wash);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fx-arrive-logo,
+    .fx-arrive-text,
+    .fx-arrive-side,
+    .fx-spine,
+    .fx-row,
+    .fx-detail-body,
+    .fx-snap img {
+        animation: none !important;
+    }
+}
+
+.fx-foot b[data-countup] {
+    display: inline-block;
+    min-width: var(--w, 1ch);
+    text-align: right;
+}

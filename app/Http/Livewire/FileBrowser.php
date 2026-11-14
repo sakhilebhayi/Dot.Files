@@ -4,12 +4,16 @@ namespace App\Http\Livewire;
 
 use App\Models\BulkDeletionRequest;
 use App\Models\File;
+use App\Models\FileFlag;
 use App\Models\FilePin;
 use App\Models\FileShare;
+use App\Models\FileVersion;
 use App\Models\Folder;
 use App\Models\Obj;
 use App\Models\Team;
+use App\Models\User;
 use App\Services\FileShareService;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -86,7 +90,12 @@ class FileBrowser extends Component
 
     public function mount(): void
     {
-        $this->view = session('files.view', 'grid') === 'list' ? 'list' : 'grid';
+        // The register is the working view (R-51); the shelf stays one click away and is remembered.
+        $this->view = session('files.view', 'list') === 'grid' ? 'grid' : 'list';
+
+        $sort = session('files.sort', 'name');
+        $this->sort = in_array($sort, self::SORTS, true) ? $sort : 'name';
+        $this->dir = session('files.dir', 'asc') === 'desc' ? 'desc' : 'asc';
 
         // The top bar's ecosystem search submits here (GET ?search=…): land with the
         // workspace already filtered to what was typed.
@@ -166,11 +175,44 @@ class FileBrowser extends Component
             $results = $this->object->children()->whereNull('trashed_at')->with('objectable')->get();
         }
 
-        if ($this->kind === 'all') {
-            return $results;
+        if ($this->kind !== 'all') {
+            $results = $results->filter(fn ($o) => $o->objectable_type === 'file' && $o->objectable->kind() === $this->kind)->values();
         }
 
-        return $results->filter(fn ($o) => $o->objectable_type === 'file' && $o->objectable->kind() === $this->kind)->values();
+        return $this->sorted($results);
+    }
+
+    // ---- The register's sort (R-51): kept for the session like the view; folders always lead. ----
+
+    public const SORTS = ['name', 'size', 'filed'];
+
+    public string $sort = 'name';
+
+    public string $dir = 'asc';
+
+    public function sortBy(string $column): void
+    {
+        if (! in_array($column, self::SORTS, true)) {
+            return;
+        }
+
+        $this->dir = $this->sort === $column && $this->dir === 'asc' ? 'desc' : 'asc';
+        $this->sort = $column;
+        session(['files.sort' => $this->sort, 'files.dir' => $this->dir]);
+    }
+
+    private function sorted($results)
+    {
+        $key = match ($this->sort) {
+            'size' => fn ($o) => $o->objectable_type === 'file' ? (int) $o->objectable->size : -1,
+            'filed' => fn ($o) => $o->created_at?->getTimestamp() ?? 0,
+            default => fn ($o) => mb_strtolower((string) $o->objectable?->name),
+        };
+
+        return $results
+            ->sortBy($key, SORT_NATURAL | SORT_FLAG_CASE, $this->dir === 'desc')
+            ->sortBy(fn ($o) => $o->objectable_type === 'folder' ? 0 : 1, SORT_REGULAR, false)
+            ->values();
     }
 
     /**
@@ -435,6 +477,301 @@ class FileBrowser extends Component
                 'name' => $object->objectable->name,
             ];
         }
+    }
+
+    // ---- The dashboard (R-51): a selected record, the room, the headline, the foot. ----
+    //
+    // Tenant isolation is the hard requirement here. FileVersion and FileShare carry NO team scope, and
+    // FileFlag only a team_id column, so every query below starts from team-scoped file ids
+    // (`File::query()->select('id')`, which fails closed for a person with no current team) and every
+    // FileFlag query filters on team_id. Nothing here ever asks a global question of those tables.
+
+    /** The register row (an Obj id) whose record fills the panel. Client-controlled, so never trusted: see getFocusedProperty(). */
+    public ?int $focusId = null;
+
+    public ?string $focusNotice = null;
+
+    public function focus(int $id): void
+    {
+        $this->focusNotice = null;
+
+        // Resolved through this company's own, untrashed records: another company's id, a folder and a
+        // record that vanished since the page loaded all leave the panel on the room.
+        $obj = Obj::where('objectable_type', 'file')->whereNull('trashed_at')->find($id);
+
+        if (! $obj || ! $this->results->contains('id', $obj->id)) {
+            $this->focusId = null;
+            $this->focusNotice = __('That record is no longer here.');
+
+            return;
+        }
+
+        $this->focusId = $obj->id;
+    }
+
+    public function clearFocus(): void
+    {
+        $this->focusId = null;
+        $this->focusNotice = null;
+    }
+
+    /** True when this person decides share requests and reads governance flags (owner or administrator of a company). */
+    private function decides(): bool
+    {
+        $team = $this->resolveCurrentTeam();
+        $user = auth()->user();
+
+        return $team && ! $team->personal_team && ($user->ownsTeam($team) || $user->hasTeamRole($team, 'admin'));
+    }
+
+    private function inCompany(): bool
+    {
+        $team = $this->resolveCurrentTeam();
+
+        return $team && ! $team->personal_team;
+    }
+
+    /** Active, not-ended shares as this person may see them: a decider sees all of the company's, a member only their own requests. */
+    private function visibleShares()
+    {
+        $q = FileShare::whereIn('file_id', File::query()->select('id'));
+
+        return $this->decides() ? $q : $q->where('requested_by', auth()->id());
+    }
+
+    /** The panel's record: a file in the rows currently listed, with its facts, or null. */
+    public function getFocusedProperty(): ?array
+    {
+        $team = $this->resolveCurrentTeam();
+
+        if (! $team || $this->focusId === null) {
+            return null;
+        }
+
+        $obj = $this->results->firstWhere('id', $this->focusId);
+
+        if (! $obj || $obj->objectable_type !== 'file' || ! $obj->objectable) {
+            return null;
+        }
+
+        $file = $obj->objectable; // team-scoped morph: another company's file would not have loaded
+        $decides = $this->decides();
+
+        return [
+            'obj' => $obj,
+            'file' => $file,
+            'uploader' => $file->uploader?->name,
+            'folder' => $obj->parent_id ? Obj::with('objectable')->find($obj->parent_id)?->objectable?->name : null,
+            'versions' => FileVersion::where('file_id', $file->id)->with('author')->orderByDesc('version')->limit(3)->get(),
+            'outside' => $this->inCompany() ? ($this->outsideMap[$file->id] ?? ['active' => 0, 'pending' => 0, 'soonest' => null]) : null,
+            'flagged' => $decides && FileFlag::open()->where('team_id', $team->id)->where('file_id', $file->id)->exists(),
+            'pinned' => FilePin::where('user_id', auth()->id())->where('file_id', $file->id)->exists(),
+        ];
+    }
+
+    /**
+     * For the rows listed: how many outside shares each file has and when the soonest ends. One grouped
+     * query over file ids that came from the team-scoped results, so another company's shares never join.
+     *
+     * @return array<int, array{active: int, pending: int, soonest: ?Carbon}>
+     */
+    public function getOutsideMapProperty(): array
+    {
+        if (! $this->inCompany()) {
+            return [];
+        }
+
+        $ids = $this->results->where('objectable_type', 'file')->pluck('objectable_id')->all();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $map = [];
+        // Only ids that are really this company's files (belt and braces over the results above).
+        $own = File::query()->whereIn('id', $ids)->pluck('id')->all();
+
+        FileShare::whereIn('file_id', $own)->active()
+            ->selectRaw('file_id, count(*) as n, min(expires_at) as soonest')->groupBy('file_id')->get()
+            ->each(function ($r) use (&$map) {
+                $map[(int) $r->file_id] = ['active' => (int) $r->n, 'pending' => 0, 'soonest' => Carbon::parse($r->soonest)];
+            });
+
+        // A pending request is shown to those who decide, and to the person who asked.
+        $pending = FileShare::whereIn('file_id', $own)->pending();
+        $pending = $this->decides() ? $pending : $pending->where('requested_by', auth()->id());
+        $pending->selectRaw('file_id, count(*) as n')->groupBy('file_id')->get()
+            ->each(function ($r) use (&$map) {
+                $map[(int) $r->file_id] ??= ['active' => 0, 'pending' => 0, 'soonest' => null];
+                $map[(int) $r->file_id]['pending'] = (int) $r->n;
+            });
+
+        return $map;
+    }
+
+    /** Records inside each folder row listed (untrashed), one grouped query over team-scoped Obj rows. */
+    public function getFolderCountsProperty(): array
+    {
+        $ids = $this->results->where('objectable_type', 'folder')->pluck('id')->all();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return Obj::whereIn('parent_id', $ids)->whereNull('trashed_at')
+            ->selectRaw('parent_id, count(*) as n')->groupBy('parent_id')->pluck('n', 'parent_id')
+            ->map(fn ($n) => (int) $n)->all();
+    }
+
+    /** Names of whoever filed the listed documents (ids come from this company's own files). */
+    public function getUploaderNamesProperty(): array
+    {
+        $ids = $this->results->where('objectable_type', 'file')->map(fn ($o) => $o->objectable?->uploaded_by)->filter()->unique()->all();
+
+        return $ids === [] ? [] : User::whereIn('id', $ids)->pluck('name', 'id')->all();
+    }
+
+    public function getTrashedCountProperty(): int
+    {
+        return Obj::whereNotNull('trashed_at')->count();
+    }
+
+    /** Open governance flags for this company; deciders only (members never see conduct questions). */
+    public function getOpenFlagCountProperty(): int
+    {
+        $team = $this->resolveCurrentTeam();
+
+        if (! $team || ! $this->decides()) {
+            return 0;
+        }
+
+        return FileFlag::open()->where('team_id', $team->id)->count();
+    }
+
+    /** Own pending requests, for a member; 0 for a decider (they have pendingShares) and for a personal workspace. */
+    public function getMyPendingCountProperty(): int
+    {
+        if (! $this->inCompany() || $this->decides()) {
+            return 0;
+        }
+
+        return FileShare::whereIn('file_id', File::query()->select('id'))->pending()->where('requested_by', auth()->id())->count();
+    }
+
+    /** The headline sentence: the first true state wins, every number real (design section 2). */
+    public function getHeadlineProperty(): string
+    {
+        $team = $this->resolveCurrentTeam();
+        $company = $team?->name ?? '';
+        $docs = $this->stats['documents'];
+
+        if ($this->decides()) {
+            $requests = $this->pendingShares;
+            $flags = $this->openFlagCount;
+
+            if ($requests + $flags > 0) {
+                $parts = [];
+
+                if ($requests > 0) {
+                    $parts[] = trans_choice(':count share request|:count share requests', $requests, ['count' => $requests]);
+                }
+
+                if ($flags > 0) {
+                    $parts[] = trans_choice(':count flagged activity|:count flagged activities', $flags, ['count' => $flags]);
+                }
+
+                $verb = count($parts) === 1 && $requests + $flags === 1 ? __('waits on you.') : __('wait on you.');
+
+                return implode(' '.__('and').' ', $parts).' '.$verb;
+            }
+        } elseif ($this->myPendingCount > 0) {
+            return trans_choice(':count of your share requests waits for approval.|:count of your share requests wait for approval.', $this->myPendingCount, ['count' => $this->myPendingCount]);
+        }
+
+        if ($this->inCompany()) {
+            $ending = $this->visibleShares()->active()->where('expires_at', '<=', now()->addDays(self::HEADLINE_DAYS))->orderBy('expires_at')->get(['expires_at']);
+
+            if ($ending->isNotEmpty()) {
+                $days = max(1, (int) ceil(now()->diffInHours($ending->first()->expires_at) / 24));
+
+                return $ending->count() === 1
+                    ? __('1 outside share ends in :days.', ['days' => trans_choice(':count day|:count days', $days, ['count' => $days])])
+                    : __(':count outside shares end within :days days, the first in :first.', ['count' => $ending->count(), 'days' => self::HEADLINE_DAYS, 'first' => trans_choice(':count day|:count days', $days, ['count' => $days])]);
+            }
+        }
+
+        if ($this->isFirstRun || $docs === 0 && ! $this->hasRecords()) {
+            return __('Nothing is filed for :company yet.', ['company' => $company]);
+        }
+
+        return trans_choice(':count document is filed for :company.|:count documents are filed for :company.', $docs, ['count' => number_format($docs), 'company' => $company]);
+    }
+
+    private function hasRecords(): bool
+    {
+        return Obj::whereNotNull('parent_id')->exists();
+    }
+
+    /** The headline counts a share as "ending" inside this window; the room's Ending soon list uses the longer one. */
+    public const HEADLINE_DAYS = 7;
+
+    public const ENDING_DAYS = 14;
+
+    /**
+     * The room: what needs a person, what is ending, what changed lately, what this person pinned.
+     * Sections with nothing to say are simply empty collections; the view omits or states them.
+     */
+    public function getRoomProperty(): array
+    {
+        $company = $this->inCompany();
+        $decides = $this->decides();
+        $team = $this->resolveCurrentTeam();
+
+        $pending = collect();
+        $flags = collect();
+        $ending = collect();
+
+        if ($company) {
+            $pendingQ = FileShare::whereIn('file_id', File::query()->select('id'))->pending();
+            $pending = ($decides ? $pendingQ : $pendingQ->where('requested_by', auth()->id()))
+                ->with(['file' => fn ($q) => $q->withoutGlobalScopes()])->orderBy('created_at')->get();
+
+            $ending = $this->visibleShares()->active()->where('expires_at', '<=', now()->addDays(self::ENDING_DAYS))
+                ->with(['file' => fn ($q) => $q->withoutGlobalScopes()])->orderBy('expires_at')->limit(3)->get();
+
+            if ($decides) {
+                $flags = FileFlag::open()->where('team_id', $team->id)->with(['file' => fn ($q) => $q->withoutGlobalScopes()])
+                    ->orderByDesc('created_at')->get();
+            }
+        }
+
+        // Recently changed: newest versions of this company's untrashed files, with the author. Never FileVersion::latest().
+        $recent = FileVersion::whereIn('file_id', File::query()->select('id'))
+            ->whereIn('file_id', Obj::where('objectable_type', 'file')->whereNull('trashed_at')->select('objectable_id'))
+            ->with(['author', 'file' => fn ($q) => $q->withoutGlobalScopes()])
+            ->orderByDesc('created_at')->orderByDesc('id')->limit(5)->get();
+
+        return [
+            'pending' => $pending,
+            'flags' => $flags,
+            'ending' => $ending,
+            'recent' => $recent,
+            'pins' => $this->pins,
+            'showEnding' => $company,
+        ];
+    }
+
+    /** The spines drawn in the arrival: the newest documents (team-scoped), with their size and whether they are shared outside. */
+    public function getSpinesProperty()
+    {
+        $files = File::query()->whereIn('id', Obj::where('objectable_type', 'file')->whereNull('trashed_at')->select('objectable_id'))
+            ->orderByDesc('created_at')->limit(24)->get(['id', 'size']);
+
+        $shared = $this->inCompany()
+            ? FileShare::whereIn('file_id', $files->pluck('id'))->active()->distinct()->pluck('file_id')->all()
+            : [];
+
+        return $files->map(fn ($f) => ['size' => (int) $f->size, 'shared' => in_array($f->id, $shared, true)])->values();
     }
 
     public function render()

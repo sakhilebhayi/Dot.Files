@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use App\Http\Livewire\FileBrowser;
 use App\Models\File;
+use App\Models\FileFlag;
+use App\Models\FileShare;
 use App\Models\Folder;
 use App\Models\Obj;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\FileVersions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -147,5 +150,137 @@ class FilesTenantIsolationTest extends TestCase
 
         $this->get(route('files.download', $file))->assertRedirect();
         $this->get('/files')->assertRedirect();
+    }
+
+    // ---- R-51: the dashboard's new queries. FileVersion and FileShare carry no team scope, FileFlag only a team_id. ----
+
+    /** Globex has loud, recent, pending, ending and flagged records; Acme has none of those. */
+    private function globexActivity(): File
+    {
+        [$g] = $this->fileFor($this->globex, 'GLOBEX-PAYROLL.txt');
+        $this->actingAs($this->gina);
+        app(FileVersions::class)->replace($g, 'v2', null, $this->gina->id, null, 'replaced');
+        FileShare::create(['file_id' => $g->id, 'email' => 'leak@x.test', 'created_by' => $this->gina->id, 'expires_at' => now()->addDays(2), 'status' => 'active', 'permission' => 'view']);
+        FileShare::create(['file_id' => $g->id, 'email' => 'leak2@x.test', 'created_by' => $this->gina->id, 'requested_by' => $this->gina->id, 'expires_at' => now()->addDays(9), 'status' => 'pending', 'permission' => 'view']);
+        FileFlag::create(['team_id' => $this->globex->id, 'file_id' => $g->id, 'rule' => 'version-churn', 'actor_id' => $this->gina->id, 'severity' => 'review', 'evidence' => ['count' => 9], 'status' => 'open']);
+
+        return $g;
+    }
+
+    private function acmeBrowser()
+    {
+        $root = $this->acme->objects()->withoutGlobalScope('team')->whereNull('parent_id')->first();
+
+        return Livewire::actingAs($this->ann)->test(FileBrowser::class, ['object' => $root, 'ancestors' => collect([$root])]);
+    }
+
+    public function test_the_room_never_lists_another_companys_versions_shares_or_flags(): void
+    {
+        $this->globexActivity();
+        [$mine] = $this->fileFor($this->acme, 'ACME-NOTE.txt');
+
+        $component = $this->acmeBrowser();
+        $room = $component->get('room');
+
+        $this->assertCount(0, $room['pending'], 'no Globex pending request');
+        $this->assertCount(0, $room['ending'], 'no Globex ending share');
+        $this->assertCount(0, $room['flags'], 'no Globex flag');
+        $this->assertSame([], $room['recent']->pluck('file_id')->diff([$mine->id])->values()->all(), 'recent versions are Acme files only');
+        $component->assertDontSee('GLOBEX-PAYROLL')->assertDontSee('leak@x.test');
+    }
+
+    public function test_the_headline_and_counts_ignore_another_companys_requests_flags_and_ending_shares(): void
+    {
+        $this->globexActivity();
+        $this->fileFor($this->acme, 'ACME-NOTE.txt');
+
+        $component = $this->acmeBrowser();
+
+        $this->assertSame('1 document is filed for Acme.', $component->get('headline'));
+        $this->assertSame(0, $component->get('pendingShares'));
+        $this->assertSame(0, $component->get('openFlagCount'));
+        $this->assertSame(0, $component->get('stats')['shared']);
+    }
+
+    public function test_the_outside_column_never_borrows_another_companys_shares(): void
+    {
+        $globexFile = $this->globexActivity();
+        [$mine] = $this->fileFor($this->acme, 'ACME-NOTE.txt');
+
+        $map = $this->acmeBrowser()->get('outsideMap');
+
+        $this->assertArrayNotHasKey($globexFile->id, $map);
+        $this->assertSame([], $map, 'Acme has nothing shared, so nothing is mapped');
+        $this->assertSame(1, FileShare::where('file_id', $globexFile->id)->active()->count(), 'the Globex share really exists');
+    }
+
+    public function test_focusing_another_companys_object_selects_nothing(): void
+    {
+        [, $theirsObj] = $this->fileFor($this->globex, 'theirs.txt');
+        $this->fileFor($this->acme, 'mine.txt');
+
+        $component = $this->acmeBrowser()->call('focus', $theirsObj->id);
+
+        $component->assertSet('focusId', null);
+        $this->assertNull($component->get('focused'));
+        $component->assertSee('That record is no longer here.')->assertDontSee('theirs.txt');
+    }
+
+    public function test_a_forged_focus_id_is_ignored_when_it_is_not_in_the_listed_rows(): void
+    {
+        [, $theirsObj] = $this->fileFor($this->globex, 'theirs.txt');
+
+        $component = $this->acmeBrowser()->set('focusId', $theirsObj->id);
+
+        $this->assertNull($component->get('focused'));
+        $component->assertDontSee('theirs.txt');
+    }
+
+    public function test_the_focused_record_shows_only_its_own_versions_and_shares(): void
+    {
+        $this->globexActivity();
+        [$mine, $mineObj] = $this->fileFor($this->acme, 'mine.txt');
+        $this->actingAs($this->ann);
+        app(FileVersions::class)->replace($mine, 'v2', null, $this->ann->id, null, 'replaced');
+
+        $component = $this->acmeBrowser()->call('focus', $mineObj->id);
+        $focused = $component->get('focused');
+
+        $this->assertSame($mine->id, $focused['file']->id);
+        $this->assertSame([$mine->id], $focused['versions']->pluck('file_id')->unique()->values()->all());
+        $this->assertSame(0, $focused['outside']['active']);
+        $this->assertFalse($focused['flagged']);
+    }
+
+    public function test_a_flag_for_the_same_file_id_in_another_company_never_marks_this_record(): void
+    {
+        // A flag row whose team_id says Globex but whose file_id is an Acme file (a forged or stale row): Acme must not see it.
+        [$mine, $mineObj] = $this->fileFor($this->acme, 'mine.txt');
+        FileFlag::create(['team_id' => $this->globex->id, 'file_id' => $mine->id, 'rule' => 'version-churn', 'actor_id' => $this->gina->id, 'severity' => 'review', 'evidence' => [], 'status' => 'open']);
+
+        $component = $this->acmeBrowser()->call('focus', $mineObj->id);
+
+        $this->assertFalse($component->get('focused')['flagged']);
+        $this->assertSame(0, $component->get('openFlagCount'));
+        $this->assertCount(0, $component->get('room')['flags']);
+    }
+
+    public function test_a_person_with_no_current_team_gets_an_empty_room_and_no_figures(): void
+    {
+        $this->fileFor($this->acme, 'mine.txt');
+        $this->globexActivity();
+        $root = $this->acme->objects()->withoutGlobalScope('team')->whereNull('parent_id')->first();
+        $this->ann->forceFill(['current_team_id' => null])->save();
+
+        $component = Livewire::actingAs($this->ann->fresh())->test(FileBrowser::class, ['object' => $root, 'ancestors' => collect()]);
+        $room = $component->get('room');
+
+        $this->assertCount(0, $room['recent']);
+        $this->assertCount(0, $room['pending']);
+        $this->assertCount(0, $room['flags']);
+        $this->assertCount(0, $room['ending']);
+        $this->assertSame(0, $component->get('trashedCount'));
+        $this->assertSame([], $component->get('outsideMap'));
+        $this->assertCount(0, $component->get('spines'));
     }
 }

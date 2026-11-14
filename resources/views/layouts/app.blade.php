@@ -25,7 +25,7 @@
         <script src="https://unpkg.com/filepond/dist/filepond.min.js"></script>
     </head>
     <body class="antialiased">
-        <div class="min-h-screen flex flex-col">
+        <div class="min-h-screen flex flex-col @if (($shell ?? null) === 'desk') fx-shell-desk @endif">
             @livewire('navigation-dropdown')
 
             @isset($header)
@@ -36,14 +36,16 @@
                 </header>
             @endisset
 
-            <main class="flex-1">
+            <main class="flex-1 @if (($shell ?? null) === 'desk') fx-desk-main @endif">
                 {{ $slot }}
             </main>
 
+            @if (($shell ?? null) !== 'desk')
             <footer class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 text-sm" style="color: var(--ink-faint);">
                 Dot.Files — every file here belongs to
                 {{ auth()->user()?->currentTeam?->name ?? 'your company' }} and is visible to no other business.
             </footer>
+            @endif
         </div>
 
         @stack('modals')

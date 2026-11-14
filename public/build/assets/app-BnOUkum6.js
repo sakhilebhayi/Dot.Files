@@ -1,4 +1,4 @@
-var Bs=typeof globalThis<"u"?globalThis:typeof window<"u"?window:typeof global<"u"?global:typeof self<"u"?self:{};function bl(o){return o&&o.__esModule&&Object.prototype.hasOwnProperty.call(o,"default")?o.default:o}var di={exports:{}};/**
+document.addEventListener("DOMContentLoaded",()=>{if(window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;const o=new Intl.NumberFormat("en-US");document.querySelectorAll("[data-countup]").forEach(r=>{const i=r.textContent.trim(),f=parseInt(i.replace(/\D/g,""),10);if(!Number.isFinite(f)||f<2)return;const p=performance.now(),_=600,b=y=>{const C=Math.min(1,(y-p)/_);r.textContent=C<1?o.format(Math.round(f*(1-Math.pow(1-C,3)))):i,C<1&&requestAnimationFrame(b)};requestAnimationFrame(b)})});var Bs=typeof globalThis<"u"?globalThis:typeof window<"u"?window:typeof global<"u"?global:typeof self<"u"?self:{};function bl(o){return o&&o.__esModule&&Object.prototype.hasOwnProperty.call(o,"default")?o.default:o}var di={exports:{}};/**
  * @license
  * Lodash <https://lodash.com/>
  * Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
