@@ -13,6 +13,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -110,12 +111,24 @@ class PlatformEntitlementTest extends TestCase
         Http::fake([self::COMPANIES => $response]);
     }
 
+    /**
+     * The header's platform switcher (shared Dot UI, R-51) reads the same InfoDot endpoint under its own cache key.
+     * These tests count and sequence the ENTITLEMENT check's requests, so the switcher's answer is parked as a recent
+     * failure: it then asks nothing and every count below stays the entitlement check's own. The switcher has its
+     * own tests (DotUiHeaderTest).
+     */
+    private function parkSwitcher(string $uuid): void
+    {
+        Cache::put('infodot:platforms:files:'.strtolower($uuid), ['ok' => false, 'personal' => false, 'rows' => []], 3600);
+    }
+
     /** A signed-in owner whose current team is a company linked to InfoDot, holding one file and one folder. */
     private function ownerOf(string $uuid = self::ACME, string $name = 'Acme'): User
     {
         $owner = User::factory()->withPersonalTeam()->create();
         $team = Team::forceCreate(['user_id' => $owner->id, 'name' => $name, 'personal_team' => false, 'infodot_team_uuid' => $uuid]);
         $owner->switchTeam($team);
+        $this->parkSwitcher($uuid);
 
         $this->fileIn($team, 'Budget 2027.txt');
 

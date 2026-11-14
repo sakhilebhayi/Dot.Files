@@ -10,6 +10,12 @@
 
         {{-- Geist is self-hosted (public/fonts, declared in app.css): no font CDN dependency. --}}
         <link rel="preload" href="{{ asset('fonts/geist-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+        {{-- Shared Dot UI (search pill, platform switcher), served from this site's own public/dot-ui. Loaded before the app CSS so the host mapping block in app.css wins. --}}
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-fonts.css') }}">
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-tokens.css') }}">
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-search.css') }}">
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-switcher-fonts.css') }}">
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-switcher.css') }}">
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
         @livewireStyles
@@ -42,6 +48,8 @@
 
         @stack('modals')
 
+        <script src="{{ asset('dot-ui/js/dot-switcher.js') }}" defer></script>
+        <script src="{{ asset('dot-ui/js/dot-search.js') }}" defer></script>
         @livewireScripts
     </body>
 </html>

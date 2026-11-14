@@ -8,6 +8,8 @@
     $firstRun = $this->isFirstRun;
     $firstName = \Illuminate\Support\Str::of($user->name)->trim()->before(' ')->toString();
     $infodot = rtrim((string) config('ecosystem.platforms.infodot.url'), '/');
+    // The header's Dot Apps switcher carries InfoDot for a linked company; a personal or unlinked workspace gets only a sentence there, so it keeps this way back.
+    $keepWayback = ! $team || $team->personal_team || blank($team->infodot_team_uuid);
 @endphp
 
 <div class="space-y-4"
@@ -38,10 +40,12 @@
                         <x-fx.icon name="folder" /> {{ __('New folder') }}
                     </button>
                 </div>
-                <p class="fx-wayback">
-                    <a href="{{ $infodot }}/home">{{ __('InfoDot') }}</a>
-                    <a href="{{ $infodot }}/platforms">{{ __('Platforms') }}</a>
-                </p>
+                @if ($keepWayback)
+                    <p class="fx-wayback">
+                        <a href="{{ $infodot }}/home">{{ __('InfoDot') }}</a>
+                        <a href="{{ $infodot }}/platforms">{{ __('Platforms') }}</a>
+                    </p>
+                @endif
             </div>
 
             <div class="fx-firstrun-facts">
@@ -87,10 +91,12 @@
                     {{ __('Hello :name. This is the filing room for :company.', ['name' => $firstName, 'company' => $team?->name]) }}
                 </h1>
                 <p class="text-sm" style="color: var(--ink-soft);">{{ __('Upload, organise, find and share documents. Only this company sees them.') }}</p>
-                <p class="fx-wayback">
-                    <a href="{{ $infodot }}/home">{{ __('InfoDot') }}</a>
-                    <a href="{{ $infodot }}/platforms">{{ __('Platforms') }}</a>
-                </p>
+                @if ($keepWayback)
+                    <p class="fx-wayback">
+                        <a href="{{ $infodot }}/home">{{ __('InfoDot') }}</a>
+                        <a href="{{ $infodot }}/platforms">{{ __('Platforms') }}</a>
+                    </p>
+                @endif
             </div>
         </div>
 
@@ -146,14 +152,10 @@
     {{-- Toolbar: finding and arranging. The upload action lives in the arrival band above. --}}
     @unless ($firstRun)
     <div class="flex flex-wrap items-center gap-2">
-        <label class="relative flex-grow min-w-[14rem] max-sm:w-full max-sm:min-w-0">
-            <span class="sr-only">{{ __('Search this company’s records') }}</span>
-            <span class="absolute left-3 top-1/2 -translate-y-1/2" style="color: var(--ink-faint);">
-                <x-fx.icon name="search" />
-            </span>
-            <input id="fx-search" type="search" placeholder="{{ __('Search this company’s records — press /') }}"
-                   class="fx-input pl-10" wire:model.live.debounce.300ms="query">
-        </label>
+        <div class="flex-grow min-w-[14rem] max-sm:w-full max-sm:min-w-0">
+            <x-dot.filter-search id="fx-search" name="query" :placeholder="__('Search this company’s records — press /')"
+                                 :label="__('Search this company’s records')" wire:model.live.debounce.300ms="query" />
+        </div>
 
         <label>
             <span class="sr-only">{{ __('Show only') }}</span>

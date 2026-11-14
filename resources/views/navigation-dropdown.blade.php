@@ -1,6 +1,6 @@
 <nav x-data="{ open: false, account: false }" class="fx-top" @keydown.escape.window="open = false; account = false">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-12 gap-4">
+        <div class="fx-top-row flex items-center justify-between min-h-12 gap-x-4">
             <div class="flex items-center gap-5 min-w-0">
                 <a href="{{ route('files') }}" class="flex items-center press" aria-label="Dot.Files home">
                     <picture>
@@ -30,9 +30,18 @@
                 </div>
             </div>
 
-            {{-- The ecosystem search bar: InfoDot's component, on this company's files (R-28 §3). --}}
-            <div class="ix-top__search hidden md:block">
+            {{-- The ecosystem search bar: the shared Dot UI pill, on this company's files (R-28 §3, R-51). --}}
+            <div class="fx-top-search">
                 <livewire:file-search />
+            </div>
+
+            {{-- Platform switcher (shared Dot UI): what InfoDot says the current company holds; a personal workspace has no company. --}}
+            @php($switcherTeam = Auth::user()->currentTeam)
+            <div class="fx-top-switch">
+                <x-dot.switcher platform="files"
+                    :company="$switcherTeam && ! $switcherTeam->personal_team ? $switcherTeam->infodot_team_uuid : null"
+                    :company-name="$switcherTeam?->name"
+                    logos="/dot-ui/img/platforms" />
             </div>
 
             {{-- Account / company menu --}}
