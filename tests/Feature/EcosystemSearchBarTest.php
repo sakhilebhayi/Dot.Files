@@ -62,7 +62,7 @@ class EcosystemSearchBarTest extends TestCase
 
         $this->actingAs($this->owner)->get('/files')->assertOk()
             ->assertSeeLivewire(FileSearch::class)
-            ->assertSee('ix-search', false);
+            ->assertSee('dsr-input', false);
 
         Livewire::actingAs($this->owner)->test(FileSearch::class)
             ->set('query', 'Quarterly')

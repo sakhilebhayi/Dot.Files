@@ -125,7 +125,7 @@ jobs:
 
           APP_DIR="$(basename "$DEPLOY_PATH")"
           if [ "$DOCROOT" != "$DEPLOY_PATH" ] && grep -qs "$APP_DIR/vendor/autoload.php" "$DOCROOT/index.php"; then
-            for target in build images img css js favicon.ico favicon-16x16.png favicon-32x32.png apple-touch-icon.png robots.txt; do
+            for target in build images img css js dot-ui favicon.ico favicon-16x16.png favicon-32x32.png apple-touch-icon.png robots.txt; do
               [ -e "$DEPLOY_PATH/public/$target" ] || continue
               # A real file or folder already there (old hand-copied assets) is left alone:
               # ln would put the link INSIDE a folder instead of replacing it.
@@ -147,6 +147,17 @@ jobs:
               echo "::error::/build/$asset answered ${code:-no response} (expected 200): the docroot is not serving the built assets."; exit 1
             fi
             echo "== asset ok: /build/$asset"
+          done
+
+          # The shared Dot UI (search pill, platform switcher) is served from public/dot-ui. While the docroot is the folder
+          # above the app that path is a symlink made above; check it really answers, so a missing link cannot ship an
+          # unstyled header unnoticed.
+          for asset in dot-ui/css/dot-search.css dot-ui/css/dot-switcher.css dot-ui/js/dot-switcher.js; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://files.infodot.co.za/$asset" || true)
+            if [ "$code" != "200" ]; then
+              echo "::error::/$asset answered ${code:-no response} (expected 200): the docroot is not serving the shared Dot UI."; exit 1
+            fi
+            echo "== asset ok: /$asset"
           done
 
           # Walk the snapshot backlog with the site already up: files uploaded while the

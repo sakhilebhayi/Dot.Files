@@ -128,7 +128,7 @@ jobs:
           # Docroot asset links, only where the shim layout is in use.
           APP_DIR="$(basename "$APP")"
           if [ "$DOCROOT" != "$APP" ] && grep -qs "$APP_DIR/vendor/autoload.php" "$DOCROOT/index.php"; then
-            for target in build images img css js favicon.ico favicon-16x16.png favicon-32x32.png apple-touch-icon.png robots.txt; do
+            for target in build images img css js dot-ui favicon.ico favicon-16x16.png favicon-32x32.png apple-touch-icon.png robots.txt; do
               [ -e "$APP/public/$target" ] || continue
               # A real file or folder already there (old hand-copied assets) is left alone:
               # ln would put the link INSIDE a folder instead of replacing it.
