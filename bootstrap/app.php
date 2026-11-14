@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Middleware\EnsureCompanyHoldsPlatform;
 use App\Http\Middleware\EnsureCurrentTeam;
 use App\Http\Middleware\EnsurePlatformOperator;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,11 +21,13 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         // Global, so error pages, /up and the CSP report endpoint carry the headers too (R-25).
-        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        $middleware->append(SecurityHeaders::class);
 
         $middleware->web(append: [
             AuthenticateSession::class,
             EnsureCurrentTeam::class,
+            // R-50: after the current team is settled, ask whether that company still holds Dot.Files.
+            EnsureCompanyHoldsPlatform::class,
         ]);
 
         $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR |

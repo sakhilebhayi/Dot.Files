@@ -289,6 +289,139 @@
         line-height: 1;
     }
 
+    /* The arrival band (R-50): the room head carrying the real logo, the welcome and the
+       one dominant action. Same hairline, same rhythm — it stays a head, not a hero. */
+    .fx-arrival-logo {
+        display: block;
+        width: 56px;
+        height: 56px;
+        object-fit: contain;
+    }
+
+    .fx-arrival-logo--lg {
+        width: 88px;
+        height: 88px;
+    }
+
+    .fx-arrival-title {
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+        text-wrap: balance;
+    }
+
+    .fx-wayback {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.15rem;
+        font-size: 13px;
+    }
+
+    .fx-wayback a {
+        color: var(--ink-soft);
+        font-weight: 500;
+        text-decoration: underline;
+        text-decoration-color: var(--line-strong);
+        text-underline-offset: 3px;
+        transition: color 140ms var(--ease-out);
+    }
+
+    .fx-wayback a:hover {
+        color: var(--ink);
+        text-decoration-color: currentColor;
+    }
+
+    /* First run: the same arrival, given the room an empty library leaves. */
+    .fx-firstrun {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+        gap: 2.5rem;
+        padding: 2.5rem;
+        align-items: start;
+    }
+
+    .fx-firstrun-lead {
+        display: grid;
+        justify-items: start;
+        gap: 1rem;
+    }
+
+    .fx-firstrun-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        max-width: 22ch;
+        overflow-wrap: anywhere;
+        text-wrap: balance;
+    }
+
+    .fx-firstrun-copy {
+        max-width: 52ch;
+        text-wrap: pretty;
+        color: var(--ink-soft);
+    }
+
+    .fx-firstrun-facts dl {
+        margin-top: 0.75rem;
+        border-top: 1px solid var(--line);
+    }
+
+    .fx-firstrun-facts dl > div {
+        display: grid;
+        grid-template-columns: 9.5rem minmax(0, 1fr);
+        gap: 0.25rem 1rem;
+        padding: 0.7rem 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+    }
+
+    .fx-firstrun-facts dt {
+        color: var(--ink-soft);
+    }
+
+    @media (max-width: 860px) {
+        .fx-firstrun {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 1.75rem;
+            padding: 1.25rem;
+        }
+
+        .fx-firstrun-title {
+            font-size: 1.4rem;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .fx-btn.fx-arrival-action {
+            min-height: 44px;
+        }
+
+        /* The top bar's logo sits directly above; a second one costs a phone its first row of files. */
+        .fx-arrival .fx-arrival-logo {
+            display: none;
+        }
+
+        .fx-wayback a {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+        }
+
+        .fx-firstrun-lead > div {
+            width: 100%;
+        }
+
+        .fx-firstrun-lead .fx-arrival-action {
+            width: 100%;
+        }
+
+        .fx-firstrun-facts dl > div {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
     .fx-tally {
         font-weight: 500;
         font-size: 1.5rem;

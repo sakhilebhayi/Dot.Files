@@ -5,40 +5,118 @@
     $canRequest = $team && ! $team->personal_team && ! $canShare;
     $stats = $this->stats;
     $pinnedIds = \App\Models\FilePin::where('user_id', $user->id)->pluck('file_id')->all();
+    $firstRun = $this->isFirstRun;
+    $firstName = \Illuminate\Support\Str::of($user->name)->trim()->before(' ')->toString();
+    $infodot = rtrim((string) config('ecosystem.platforms.infodot.url'), '/');
 @endphp
 
 <div class="space-y-4"
      @keydown.slash.window="if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) { $event.preventDefault(); document.getElementById('fx-search')?.focus() }"
      @dragenter.window="if (Array.from($event.dataTransfer?.types ?? []).includes('Files')) $wire.showingObjectloadForm = true">
 
-    {{-- The room head: this company's identity and its real tallies. --}}
-    <section class="fx-roomhead" aria-label="{{ __('Company records summary') }}">
-        <div class="flex items-center gap-3 min-w-0">
-            <span class="fx-initial" aria-hidden="true">{{ mb_strtoupper(mb_substr($team?->name ?? 'D', 0, 1)) }}</span>
+    @if ($firstRun)
+        {{-- First run (R-50): nothing has ever been filed, so the arrival is the whole screen —
+             what this is, whose it is, the one action, and the house rules stated plainly. --}}
+        <section class="fx-panel fx-firstrun" aria-labelledby="fx-arrival-title" data-landing="first-run">
+            <div class="fx-firstrun-lead">
+                <picture>
+                    <source srcset="{{ asset('images/logo-light.png') }}" media="(prefers-color-scheme: dark)">
+                    <img src="{{ asset('images/logo.png') }}" alt="Dot.Files" width="88" height="88" class="fx-arrival-logo fx-arrival-logo--lg" data-landing-logo>
+                </picture>
+                <h1 id="fx-arrival-title" class="fx-firstrun-title">
+                    {{ __('Hello :name. The filing room for :company is ready.', ['name' => $firstName, 'company' => $team?->name]) }}
+                </h1>
+                <p class="fx-firstrun-copy">
+                    {{ __('Dot.Files is where the company keeps its documents: upload them, sort them into folders, find them again and share them with the people who need them.') }}
+                </p>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" class="fx-btn fx-btn--oxide fx-arrival-action" data-primary-action
+                            wire:click="$set('showingObjectloadForm', true)">
+                        <x-fx.icon name="upload" /> {{ __('Upload the first document') }}
+                    </button>
+                    <button type="button" class="fx-btn fx-arrival-action" wire:click="$set('creatingNewFolder', true)">
+                        <x-fx.icon name="folder" /> {{ __('New folder') }}
+                    </button>
+                </div>
+                <p class="fx-wayback">
+                    <a href="{{ $infodot }}/home">{{ __('InfoDot') }}</a>
+                    <a href="{{ $infodot }}/platforms">{{ __('Platforms') }}</a>
+                </p>
+            </div>
+
+            <div class="fx-firstrun-facts">
+                <h2 class="font-bold">{{ __('Nothing is filed here yet.') }}</h2>
+                <dl>
+                    <div>
+                        <dt>{{ __('What you can file') }}</dt>
+                        <dd>{{ __('Documents, spreadsheets, images, archives and media, up to 100 MB each.') }}</dd>
+                    </div>
+                    <div>
+                        <dt>{{ __('Who can see it') }}</dt>
+                        <dd>{{ __('Only the people in :company. No other business sees a file or its name.', ['company' => $team?->name]) }}</dd>
+                    </div>
+                    @if ($canShare)
+                        <div>
+                            <dt>{{ __('Sharing outside') }}</dt>
+                            <dd>{{ __('You share a file with a named person by email, for 7 to 90 days, and can end it at any time.') }}</dd>
+                        </div>
+                    @elseif ($canRequest)
+                        <div>
+                            <dt>{{ __('Sharing outside') }}</dt>
+                            <dd>{{ __('You can ask to share a file with a named person. An owner or administrator decides.') }}</dd>
+                        </div>
+                    @endif
+                    <div>
+                        <dt>{{ __('Deleting') }}</dt>
+                        <dd>{{ __('A deleted file waits in the trash for 30 days and can be restored until then.') }}</dd>
+                    </div>
+                </dl>
+            </div>
+        </section>
+    @else
+    {{-- The arrival band (R-50): the real logo, who this is for, the company's real tallies and
+         the one dominant action. Compact on purpose — people open this screen many times a day. --}}
+    <section class="fx-roomhead fx-arrival" aria-label="{{ __('Company records summary') }}" data-landing="band">
+        <div class="flex items-center gap-3 min-w-0 flex-1 basis-[19rem]">
+            <picture class="shrink-0">
+                <source srcset="{{ asset('images/logo-light.png') }}" media="(prefers-color-scheme: dark)">
+                <img src="{{ asset('images/logo.png') }}" alt="Dot.Files" width="56" height="56" class="fx-arrival-logo" data-landing-logo>
+            </picture>
             <div class="min-w-0">
-                <h1 class="text-lg font-bold leading-tight truncate">{{ $team?->name }}</h1>
-                <p class="text-sm" style="color: var(--ink-soft);">{{ __('The company archive — every record here is yours alone.') }}</p>
+                <h1 class="fx-arrival-title">
+                    {{ __('Hello :name. This is the filing room for :company.', ['name' => $firstName, 'company' => $team?->name]) }}
+                </h1>
+                <p class="text-sm" style="color: var(--ink-soft);">{{ __('Upload, organise, find and share documents. Only this company sees them.') }}</p>
+                <p class="fx-wayback">
+                    <a href="{{ $infodot }}/home">{{ __('InfoDot') }}</a>
+                    <a href="{{ $infodot }}/platforms">{{ __('Platforms') }}</a>
+                </p>
             </div>
         </div>
 
-        <div class="flex items-center gap-6 ml-auto">
+        <div class="flex items-center gap-6">
             <div>
-                <p class="fx-tally">{{ number_format($stats['documents']) }}</p>
+                <p class="fx-tally" data-tally="documents">{{ number_format($stats['documents']) }}</p>
                 <p class="fx-tally-label">{{ trans_choice('document|documents', $stats['documents']) }}</p>
             </div>
             <div>
-                <p class="fx-tally">{{ number_format($stats['folders']) }}</p>
+                <p class="fx-tally" data-tally="folders">{{ number_format($stats['folders']) }}</p>
                 <p class="fx-tally-label">{{ trans_choice('folder|folders', $stats['folders']) }}</p>
             </div>
             <div>
-                <p class="fx-tally">{{ \App\Models\File::bytesForHumans($stats['bytes']) }}</p>
+                <p class="fx-tally" data-tally="bytes">{{ \App\Models\File::bytesForHumans($stats['bytes']) }}</p>
                 <p class="fx-tally-label">{{ __('on file') }}</p>
             </div>
             <div>
-                <p class="fx-tally @if ($stats['shared'] > 0) fx-tally--data @endif">{{ number_format($stats['shared']) }}</p>
+                <p class="fx-tally @if ($stats['shared'] > 0) fx-tally--data @endif" data-tally="shared">{{ number_format($stats['shared']) }}</p>
                 <p class="fx-tally-label">{{ __('shared outside') }}</p>
             </div>
         </div>
+
+        <button type="button" class="fx-btn fx-btn--oxide fx-arrival-action max-sm:w-full" data-primary-action
+                wire:click="$set('showingObjectloadForm', true)">
+            <x-fx.icon name="upload" /> {{ __('Upload documents') }}
+        </button>
 
         @if ($this->pendingShares > 0)
             <a href="{{ route('approvals') }}" class="fx-stamp fx-stamp--pending" style="text-decoration: none;">
@@ -46,6 +124,7 @@
             </a>
         @endif
     </section>
+    @endif
 
     {{-- Pinned to the front: this person's own shortlist, shown while browsing the root. --}}
     @if (! $this->query && $this->object->parent_id === null && $this->pins->isNotEmpty())
@@ -64,7 +143,8 @@
         </section>
     @endif
 
-    {{-- Toolbar --}}
+    {{-- Toolbar: finding and arranging. The upload action lives in the arrival band above. --}}
+    @unless ($firstRun)
     <div class="flex flex-wrap items-center gap-2">
         <label class="relative flex-grow min-w-[14rem] max-sm:w-full max-sm:min-w-0">
             <span class="sr-only">{{ __('Search this company’s records') }}</span>
@@ -104,10 +184,8 @@
         <button type="button" class="fx-btn" wire:click="$set('creatingNewFolder', true)">
             <x-fx.icon name="folder" /> {{ __('New folder') }}
         </button>
-        <button type="button" class="fx-btn fx-btn--oxide max-sm:w-full" wire:click="$set('showingObjectloadForm', true)">
-            <x-fx.icon name="upload" /> {{ __('Upload documents') }}
-        </button>
     </div>
+    @endunless
 
     @if ($bulkDeletionRequested)
         <div class="fx-note" role="status">
@@ -180,6 +258,7 @@
         </div>
     @endif
 
+    @unless ($firstRun)
     {{-- Path / search strip --}}
     <div class="flex flex-wrap items-center gap-2">
         <nav class="fx-crumbs flex-grow" aria-label="{{ __('Folder path') }}">
@@ -213,9 +292,9 @@
                 <button type="button" class="fx-btn" wire:click="$set('query', null)">{{ __('Clear search') }}</button>
             @else
                 <p class="font-semibold">{{ __('Nothing is filed here yet.') }}</p>
-                <p class="text-sm">{{ __('Documents you upload appear here, snapshot first, and only your company can see them.') }}</p>
-                <button type="button" class="fx-btn fx-btn--oxide" wire:click="$set('showingObjectloadForm', true)">
-                    <x-fx.icon name="upload" /> {{ __('Upload the first document') }}
+                <p class="text-sm">{{ __('Documents you upload here appear snapshot first, and only your company can see them.') }}</p>
+                <button type="button" class="fx-btn" wire:click="$set('showingObjectloadForm', true)">
+                    <x-fx.icon name="upload" /> {{ __('Upload to this folder') }}
                 </button>
             @endif
         </div>
@@ -386,6 +465,7 @@
             </table>
         </div>
     @endif
+    @endunless
 
     {{-- Delete confirmation --}}
     @if ($confirmingObjectDeletion)

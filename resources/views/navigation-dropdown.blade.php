@@ -3,7 +3,10 @@
         <div class="flex items-center justify-between h-12 gap-4">
             <div class="flex items-center gap-5 min-w-0">
                 <a href="{{ route('files') }}" class="flex items-center press" aria-label="Dot.Files home">
-                    <img src="{{ asset('images/logo.png') }}" alt="Dot.Files" class="h-8 w-auto">
+                    <picture>
+                        <source srcset="{{ asset('images/logo-light.png') }}" media="(prefers-color-scheme: dark)">
+                        <img src="{{ asset('images/logo.png') }}" alt="Dot.Files" width="32" height="32" class="h-8 w-auto">
+                    </picture>
                 </a>
 
                 <div class="hidden sm:flex items-center gap-1">

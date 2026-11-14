@@ -242,9 +242,15 @@ current page ink 700), account/company menu at the right; under 640px it collaps
 toggle-revealed stack. Content lives in a `max-w-7xl` centered column (16/24/32px gutters),
 sections stacked on a 16px rhythm (`space-y-4`).
 
-The workspace reads top-down: company head (`.fx-roomhead` — initial plate, name, four tabular
-tallies with 12px grey labels, one hairline below), toolbar (search grows, filter select, view
-toggle, grey-pill "New folder", near-black "Upload documents"), then the records. Grid view is
+The workspace reads top-down: the arrival band (`.fx-roomhead.fx-arrival` — the real logo at
+56px, a one-line welcome naming the person and the company, one supporting sentence, the links
+back to InfoDot and its Platforms page, four tabular tallies with 12px grey labels, and the
+screen's single near-black action "Upload documents", marked `data-primary-action`; one hairline
+below), toolbar (search grows, filter select, view toggle, grey-pill "New folder"), then the
+records. The band stays a head, not a hero: people open this screen many times a day. A company
+that has never filed anything gets the first-run panel instead (`.fx-firstrun` — logo at 88px,
+the welcome at 1.75rem, the same single action, and the house rules as a hairline list); it
+shows no tallies, because there is nothing to count. Grid view is
 the shelf: `repeat(auto-fill, minmax(min(100%, 212px), 1fr))` with 12px gaps. List view is the
 register: 44px rule-separated rows, no zebra, row hover is one tone step (`--kraft-soft`).
 Controls are 36px tall (quiet variant 32px); touch targets stay ≥36px. Responsive from 375px:
