@@ -6,6 +6,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\InfoDot\EntitlementCheck;
 use App\Services\InfoDot\EntitlementRefusal;
+use App\Services\InfoDot\RedeemedCompanies;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,8 +21,10 @@ use Symfony\Component\HttpFoundation\Response;
  * and the files other companies have shared with the person (those belong to the person, by verified
  * email, not to the company that lost access).
  *
- * A personal workspace, or any team with no InfoDot company behind it, has nothing to ask about and
- * carries on: sign-in already followed what InfoDot said for it. No answer from InfoDot also carries on.
+ * A personal workspace, or any team with no InfoDot company behind it, is never asked about. It follows
+ * what InfoDot said about the personal workspace at sign-in (kept in the session): refused only when that
+ * was exactly false, carried on when true or when nothing was remembered. No answer from InfoDot about a
+ * company also carries on.
  */
 class EnsureCompanyHoldsPlatform
 {
@@ -49,8 +52,18 @@ class EnsureCompanyHoldsPlatform
         $user = $request->user();
         $team = $user?->currentTeam;
 
-        if (! $user instanceof User || ! $team instanceof Team || $team->personal_team || blank($team->infodot_team_uuid)) {
+        if (! $user instanceof User || ! $team instanceof Team) {
             return $next($request);
+        }
+
+        // A personal workspace, or any team with no InfoDot company behind it: InfoDot is never asked about it.
+        // It is refused only when sign-in remembered that InfoDot marked the personal workspace not entitled.
+        if ($team->personal_team || blank($team->infodot_team_uuid)) {
+            $remembered = $request->hasSession() ? $request->session()->get(RedeemedCompanies::PERSONAL_SESSION_KEY) : null;
+
+            return $remembered === false
+                ? EntitlementRefusal::response($request, EntitlementRefusal::NEEDS_COMPANY, $team, $user)
+                : $next($request);
         }
 
         $answer = $this->check->for((string) $team->infodot_team_uuid);

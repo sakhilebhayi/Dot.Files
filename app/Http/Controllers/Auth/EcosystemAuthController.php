@@ -90,6 +90,7 @@ class EcosystemAuthController extends Controller
         abort_unless(is_string($token) && $token !== '', 403);
 
         $user = $this->userFromLocalToken($token);
+        $personalEntitled = null;
 
         // Production gives each Dot app its own database, so InfoDot's token is not
         // in ours: ask InfoDot to prove it.
@@ -110,12 +111,21 @@ class EcosystemAuthController extends Controller
 
             if ($user && $identity) {
                 $syncTeams($user, $identity);
+                $personalEntitled = RedeemedCompanies::personalEntitled($identity);
             }
         }
 
         abort_if(! $user, 403);
 
         Auth::login($user);
+
+        // R-50: individuals hold the free core only. What InfoDot said about the personal workspace is kept with
+        // this sign-in, so the local personal team cannot be a way round the check. Nothing said, nothing kept.
+        if ($request->hasSession()) {
+            $personalEntitled === null
+                ? $request->session()->forget(RedeemedCompanies::PERSONAL_SESSION_KEY)
+                : $request->session()->put(RedeemedCompanies::PERSONAL_SESSION_KEY, $personalEntitled);
+        }
 
         // A deep link from InfoDot names the object to open. Only our own /o/{uuid} shape is
         // honoured, so this can never be turned into an open redirect.

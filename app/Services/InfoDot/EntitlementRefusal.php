@@ -23,11 +23,15 @@ class EntitlementRefusal
         'expired' => 'ended',
         'trial_ended' => 'ended',
         'cancelled' => 'ended',
+        'no_personal_access' => 'company',
     ];
+
+    /** The current team is a personal workspace and InfoDot said individuals do not hold Dot.Files. */
+    public const NEEDS_COMPANY = 'no_personal_access';
 
     public static function response(Request $request, ?string $status, ?Team $team = null, ?User $user = null): Response
     {
-        $wording = self::wording($status, $team?->name);
+        $wording = self::wording($status, $status === self::NEEDS_COMPANY ? null : $team?->name);
 
         if ($request->expectsJson() && ! $request->hasHeader('X-Livewire')) {
             return response()->json(['message' => $wording['title']], 403);
@@ -58,6 +62,10 @@ class EntitlementRefusal
             'payment' => [
                 'title' => "A payment is needed before {$for} can use Dot.Files",
                 'message' => "{$kept} An owner or administrator can settle it from Platforms in InfoDot, and the files open again.",
+            ],
+            'company' => [
+                'title' => 'Dot.Files needs a company that has switched it on',
+                'message' => "{$kept} Create or join a company in InfoDot and switch Dot.Files on from Platforms; this workspace opens again when individuals hold it.",
             ],
             'ended' => [
                 'title' => "Dot.Files has ended for {$for}",

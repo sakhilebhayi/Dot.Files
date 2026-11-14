@@ -267,6 +267,94 @@ class PlatformEntitlementTest extends TestCase
         $this->assertSame(0, $this->companyCalls(), 'a personal workspace has no InfoDot company to ask about');
     }
 
+    // ---- personal workspaces (individuals hold the free core only) -------------------------------
+
+    /** Sign in as a person with a company that holds the platform and a personal workspace marked as given (null: key absent). */
+    private function signInWithPersonal(?bool $personalEntitled): User
+    {
+        $this->signIn('thabo@acme.test', [
+            $this->listed((string) Str::uuid(), "Thabo's Team", 'owner', $personalEntitled, 'no_personal_access', personal: true),
+            $this->listed(self::ACME, 'Acme', 'owner', $personalEntitled === null ? null : true),
+        ], self::ACME)->assertRedirect(route('files'));
+
+        $user = User::where('email', 'thabo@acme.test')->firstOrFail();
+        $this->fileIn($user->personalTeam(), 'My passport scan.txt');
+        $this->infodotSays(Http::response($this->holding(['status' => 'included', 'entitled' => true])));
+
+        return $user->fresh();
+    }
+
+    public function test_personal_workspace_marked_true_keeps_working_and_is_never_asked_about(): void
+    {
+        $user = $this->signInWithPersonal(true);
+        $this->assertTrue(session('ecosystem.personal_entitled'));
+
+        $this->actingAs($user)->withSession(['ecosystem.personal_entitled' => true])->put(route('current-team.update'), ['team_id' => $user->personalTeam()->id]);
+        $this->actingAs($user->fresh())->withSession(['ecosystem.personal_entitled' => true])->get('/files')->assertOk()->assertSee('My passport scan.txt');
+
+        $this->assertSame(0, $this->companyCalls());
+    }
+
+    public function test_personal_workspace_marked_false_is_refused_but_untouched_and_a_company_is_offered(): void
+    {
+        $user = $this->signInWithPersonal(false);
+        $this->assertFalse(session('ecosystem.personal_entitled'));
+        $personal = $user->personalTeam();
+        $user->switchTeam($personal);
+
+        $this->actingAs($user->fresh())->withSession(['ecosystem.personal_entitled' => false])->get('/files')
+            ->assertStatus(403)
+            ->assertSee('Dot.Files needs a company that has switched it on')
+            ->assertSee('Open Platforms in InfoDot')
+            ->assertSee('https://infodot.test/platforms/files', false)
+            ->assertSee('Acme')
+            ->assertDontSee('My passport scan.txt');
+
+        $this->actingAs($user->fresh())->withSession(['ecosystem.personal_entitled' => false])->getJson('/files')->assertStatus(403);
+        $this->assertSame(0, $this->companyCalls(), 'a team with no InfoDot company is never asked about');
+        $this->assertSame(1, File::withoutGlobalScopes()->where('name', 'My passport scan.txt')->count(), 'nothing is deleted or altered');
+
+        // Switching to the entitled company works, and the company is checked as usual.
+        $acme = Team::where('infodot_team_uuid', self::ACME)->firstOrFail();
+        $this->actingAs($user->fresh())->withSession(['ecosystem.personal_entitled' => false])->put(route('current-team.update'), ['team_id' => $acme->id])->assertRedirect();
+        $this->actingAs($user->fresh())->withSession(['ecosystem.personal_entitled' => false])->get('/files')->assertOk()->assertDontSee('My passport scan.txt');
+    }
+
+    public function test_personal_workspace_with_nothing_remembered_carries_on(): void
+    {
+        $user = $this->signInWithPersonal(null);
+        $this->assertNull(session('ecosystem.personal_entitled'));
+        $user->switchTeam($user->personalTeam());
+
+        $this->actingAs($user->fresh())->get('/files')->assertOk()->assertSee('My passport scan.txt');
+        $this->assertSame(0, $this->companyCalls());
+    }
+
+    public function test_a_team_with_no_infodot_company_follows_the_remembered_answer_without_asking_infodot(): void
+    {
+        $owner = User::factory()->withPersonalTeam()->create();
+        $local = Team::forceCreate(['user_id' => $owner->id, 'name' => 'Local only', 'personal_team' => false]);
+        $owner->switchTeam($local);
+
+        $this->actingAs($owner->fresh())->get('/files')->assertOk();
+        $this->actingAs($owner->fresh())->withSession(['ecosystem.personal_entitled' => true])->get('/files')->assertOk();
+        $this->actingAs($owner->fresh())->withSession(['ecosystem.personal_entitled' => false])->get('/files')->assertStatus(403);
+        $this->assertSame(0, $this->companyCalls());
+    }
+
+    public function test_the_personal_rule_leaves_shared_links_the_platform_api_and_public_pages_alone(): void
+    {
+        $owner = User::factory()->withPersonalTeam()->create(['email' => 'pat@globex.test', 'email_verified_at' => now()]);
+        $session = ['ecosystem.personal_entitled' => false];
+
+        $this->actingAs($owner)->withSession($session)->get('/files')->assertStatus(403);
+        $this->actingAs($owner)->withSession($session)->get(route('shared'))->assertOk();
+        $this->actingAs($owner)->withSession($session)->get('/cookies')->assertOk();
+        $this->actingAs($owner)->withSession($session)->get('/up')->assertOk();
+        $this->postJson('/api/platform/files/meta', [])->assertUnauthorized();
+        $this->actingAs($owner)->withSession($session)->post('/logout')->assertRedirect();
+    }
+
     // ---- during a session ------------------------------------------------------------------------
 
     public function test_a_company_that_holds_the_platform_carries_on_and_the_call_is_shaped_as_the_contract_says(): void
