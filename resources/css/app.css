@@ -915,6 +915,8 @@ body {
     --dsr-filter-border: var(--line-strong);
     --dsr-filter-border-hover: var(--ink-faint);
     --dsr-filter-border-focus: var(--ink);
+    /* the ledger's touch controls are 42px (the view toggle), so the filter is 42px on touch and under 769px, not the 44px default */
+    --dsr-filter-h-touch: 42px;
 }
 
 /* The switcher's panel hangs from the bar's bottom edge, so the bar is its positioned ancestor. */
