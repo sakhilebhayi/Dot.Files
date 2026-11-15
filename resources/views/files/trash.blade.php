@@ -50,11 +50,11 @@
                                     <div class="flex items-center justify-end gap-2">
                                         <form method="POST" action="{{ route('trash.restore', $item) }}">
                                             @csrf
-                                            <button type="submit" class="fx-btn !min-h-[38px]">{{ __('Restore') }}</button>
+                                            <button type="submit" class="fx-btn !min-h-[44px] xl:!min-h-[38px]">{{ __('Restore') }}</button>
                                         </form>
                                         @if ($canPurge)
                                             <div x-data="{ confirming: false }">
-                                                <button type="button" class="fx-btn fx-btn--danger-outline !min-h-[38px]"
+                                                <button type="button" class="fx-btn fx-btn--danger-outline !min-h-[44px] xl:!min-h-[38px]"
                                                         @click="confirming = true">{{ __('Delete for good') }}</button>
 
                                                 <div x-cloak x-show="confirming" class="fixed inset-0 z-50 grid place-items-center p-4"

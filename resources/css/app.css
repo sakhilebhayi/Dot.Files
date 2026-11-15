@@ -10,30 +10,13 @@
  * secondary is a grey pill, figures are set like a ledger in ink with tabular numerals, and
  * the single data hue (#1d5fbf) marks only the screen's main data element — never a button,
  * never navigation. Surfaces are flat: separation is a 1px rule or one tone step, no shadow
- * at rest. Face: a blue-grey ground one level off white (the ledger's own paper), Geist for
- * everything read, Geist Mono strictly for references and IDs. Sentence case throughout; no
+ * at rest. Face: a blue-grey ground one level off white (the ledger's own paper), Roboto for
+ * everything read (Roboto, shared across the Dot ecosystem), the system monospace strictly for references and IDs. Sentence case throughout; no
  * tracked capitals. The dark theme derives the same ledger at night: the primary inverts to
  * a white pill with ink text, the hue lifts for the dark ground.
  */
 
 @layer base {
-    /* Self-hosted variable faces (latin): the world's voice never depends on a CDN. */
-    @font-face {
-        font-family: 'Geist';
-        src: url('/fonts/geist-latin.woff2') format('woff2');
-        font-weight: 400 700;
-        font-style: normal;
-        font-display: swap;
-    }
-
-    @font-face {
-        font-family: 'Geist Mono';
-        src: url('/fonts/geist-mono-latin.woff2') format('woff2');
-        font-weight: 400 500;
-        font-style: normal;
-        font-display: swap;
-    }
-
     :root {
         --paper: #f2f4f7; /* ground */
         --panel: #ffffff; /* surface */
@@ -58,9 +41,10 @@
         --line-strong: #d4d4d4;
         --shadow: none;
         --shadow-lift: none;
-        --font-display: 'Geist', Inter, system-ui, sans-serif;
-        --font-body: 'Geist', Inter, system-ui, sans-serif;
-        --font-stencil: 'Geist Mono', ui-monospace, monospace;
+        /* Roboto and the system monospace come from the shared dot-ui typography (dot-roboto.css, dot-type.css). */
+        --font-display: var(--dot-font-sans);
+        --font-body: var(--dot-font-sans);
+        --font-stencil: var(--dot-font-mono);
         --r-panel: 8px;
         --r-control: 6px;
         --r-ref: 4px;
@@ -218,14 +202,7 @@
     .fx-shelf > *:nth-child(7) { animation-delay: 180ms; }
     .fx-shelf > *:nth-child(n + 8) { animation-delay: 210ms; }
 
-    /* ---- Top bar: 48px on the page ground, no border, links as plain grey text ----- */
-
-    .fx-top {
-        --bar-ink: var(--ink);
-        --bar-faint: var(--ink-soft);
-        background: var(--paper);
-        color: var(--ink);
-    }
+    /* ---- Top bar: the shared dot-ui header (see the mapping block below) ----- */
 
     .fx-plate {
         display: inline-grid;
@@ -238,24 +215,6 @@
         font-weight: 700;
         font-size: 0.8rem;
         line-height: 1;
-    }
-
-    .fx-top-link {
-        color: var(--ink-soft);
-        font-size: 14px;
-        font-weight: 500;
-        padding: 0.4rem 0.55rem;
-        border-radius: var(--r-ref);
-        transition: color 140ms var(--ease-out);
-    }
-
-    .fx-top-link:hover {
-        color: var(--ink);
-    }
-
-    .fx-top-link[aria-current='page'] {
-        color: var(--ink);
-        font-weight: 700;
     }
 
     /* ---- Surfaces: flat, bordered, 8px --------------------------------------------- */
@@ -446,7 +405,7 @@
         }
     }
 
-    /* ---- References (Geist Mono, IDs only) and status pills -------------------------- */
+    /* ---- References (system monospace, IDs only) and status pills -------------------------- */
 
     .fx-ref {
         font-family: var(--font-stencil);
@@ -915,57 +874,43 @@ body {
     --dsr-filter-border: var(--line-strong);
     --dsr-filter-border-hover: var(--ink-faint);
     --dsr-filter-border-focus: var(--ink);
-    /* the ledger's touch controls are 42px (the view toggle), so the filter is 42px on touch and under 769px, not the 44px default */
-    --dsr-filter-h-touch: 42px;
+    /* every touch control is 44px (R-52): the filter keeps the package's 44px on touch and under 769px */
+    --dsr-filter-h-touch: 44px;
 }
 
-/* The switcher's panel hangs from the bar's bottom edge, so the bar is its positioned ancestor. */
-.fx-top {
-    position: relative;
-    z-index: 40;
+/*
+ * The top bar is the shared dot-ui header (R-52): one row, the search centred by its grid, the shared drawer and search
+ * sheet on a phone. Only the tokens are mapped here: the bar sits on the page ground with ink text and no rule, as it did.
+ * Plain :root, so the mapping wins in either load order and the drawer (which sits outside the bar) takes it too.
+ */
+:root {
+    --dh-bg: var(--paper);
+    --dh-ink: var(--ink);
+    --dh-ink-2: var(--ink-soft);
+    --dh-rule: var(--line);
+    --dh-hover: var(--panel-soft);
+    --dh-accent: var(--ink);
+    --dh-focus: var(--ink);
+    --dh-avatar-bg: var(--oxide);
+    --dh-avatar-ink: var(--oxide-ink);
+    --dh-radius: var(--r-control);
+    --dh-logo-h: 32px;
+    --dh-badge-bg: var(--oxide);
+    --dh-badge-ink: var(--oxide-ink);
 }
 
-.fx-top .dsw {
+/* The wrapper Livewire needs around the bar and its drawer takes no box of its own. */
+.fx-chrome {
+    display: contents;
+}
+
+/* The switcher's trigger on the bar, in the ledger's greys. */
+.dh .dsw {
     --dsw-btn-ink: var(--ink-soft);
     --dsw-btn-border: var(--line-strong);
     --dsw-btn-bg-hover: var(--panel-soft);
     --dsw-focus: var(--ink);
     --dsw-radius: var(--r-control);
-}
-
-/*
- * The header search takes the room between the links and the switcher. Below 1180px that room is too small for the
- * 44px pill (it used to squeeze to a few characters, and it was hidden entirely under 768px), so it drops to its own
- * full-width row under the bar instead.
- */
-.fx-top-row {
-    flex-wrap: wrap;
-}
-
-.fx-top-search {
-    order: 5;
-    flex: 1 0 100%;
-    min-width: 0;
-    padding-bottom: 0.6rem;
-}
-
-.fx-top-search .dsr {
-    margin: 0;
-}
-
-@media (min-width: 1180px) {
-    .fx-top-row {
-        flex-wrap: nowrap;
-    }
-
-    .fx-top-search {
-        order: 0;
-        flex: 1 1 200px;
-        min-width: 150px;
-        max-width: 640px;
-        align-self: center;
-        padding-bottom: 0;
-    }
 }
 
 /*
@@ -1008,6 +953,9 @@ body {
     left: var(--s4);
     top: -64px;
     z-index: 70;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     padding: var(--s2) var(--s4);
     border-radius: var(--r-control);
     background: var(--oxide);
@@ -1900,4 +1848,108 @@ body {
     display: inline-block;
     min-width: var(--w, 1ch);
     text-align: right;
+}
+
+/*
+ * Touch targets (R-52): every control on a phone or a touch screen is at least 44px in both directions, on every page (the
+ * records desk, approvals, trash, the Jetstream profile and company pages), without touching the desktop sizes.
+ */
+@media (max-width: 1024px), (pointer: coarse) {
+    .fx-btn,
+    .fx-select,
+    .fx-seg .fx-btn {
+        min-height: 44px;
+    }
+
+    .fx-seg .fx-btn {
+        min-width: 44px;
+    }
+
+    .fx-crumbs a,
+    .fx-wayback a {
+        display: inline-flex;
+        align-items: center;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    main button:not(.dsr-go):not([class*='fx-']),
+    main [type='submit']:not([class*='fx-']) {
+        min-height: 44px;
+    }
+
+    main input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']),
+    main select {
+        min-height: 44px;
+    }
+}
+
+/* Touch targets on the records register (R-52): the checkbox sits in a 44px label, the sort buttons and the name link reach 44px. */
+.fx-hit {
+    display: inline-grid;
+    place-items: center;
+}
+
+@media (max-width: 1024px), (pointer: coarse) {
+    .fx-c-check {
+        width: 48px;
+    }
+
+    .fx-dots {
+        width: 44px;
+        height: 44px;
+    }
+
+    .fx-quiet-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+
+    .fx-cell-name .fx-name {
+        min-width: 44px;
+    }
+
+    .fx-hit {
+        width: 44px;
+        height: 44px;
+        cursor: pointer;
+    }
+
+    .fx-sort {
+        display: inline-flex;
+        align-items: center;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .fx-cell-name .fx-name {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+        margin-block: -6px -11px;
+    }
+
+    main button:not(.dsr-go):not([class*='fx-']) {
+        min-width: 44px;
+    }
+
+    .fx-foot a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+}
+
+/* Narrow phones (R-52): at 320px the file name had about 68px; the size column and the cell padding give some of it back. */
+@media (max-width: 420px) {
+    .fx-register .fx-c-size {
+        width: 66px;
+        padding-inline: 4px;
+        font-size: 12px;
+    }
+
+    .fx-register td {
+        padding-inline: 8px;
+    }
 }

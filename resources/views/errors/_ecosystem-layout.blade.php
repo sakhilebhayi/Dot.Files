@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="scroll-smooth">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="scroll-smooth dot-roboto">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -19,10 +19,10 @@
             <link rel="icon" href="{{ asset($faviconPath) }}">
         @endif
 
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+        {{-- Roboto, self-hosted from this site (public/dot-ui), the face of every Dot platform: no font CDN. --}}
+        <link rel="preload" href="{{ asset('dot-ui/fonts/roboto/roboto-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-roboto.min.css') }}">
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-type.min.css') }}">
 
         @php
             $viteManifestPath = public_path('build/manifest.json');
@@ -73,9 +73,9 @@
                 --accent: #d9a018;
                 --accent-deep: #a97710;
                 --line: rgba(0,0,0,0.12);
-                --font-display: 'Fraunces', Georgia, serif;
-                --font-body: 'Work Sans', system-ui, sans-serif;
-                --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+                --font-display: var(--dot-font-sans);
+                --font-body: var(--dot-font-sans);
+                --font-mono: var(--dot-font-sans); /* these small labels are text, not data: Roboto too */
                 --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
             }
             * { box-sizing: border-box; }
@@ -137,7 +137,7 @@
                         <div style="display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;">
                             @foreach ($discover as $platform)
                                 <a href="{{ $platform['url'] }}" class="press" style="flex: 0 0 auto; scroll-snap-align: start; display: flex; align-items: center; gap: 8px; padding: 7px 14px 7px 7px; background: #ffffff; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; white-space: nowrap;">
-                                    <span class="material-symbols-rounded" aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: {{ $platform['accent'] ?? 'var(--accent)' }}; color: #ffffff; font-size: 16px; flex-shrink: 0;">{{ $platform['icon'] ?? 'apps' }}</span>
+                                    <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: {{ $platform['accent'] ?? 'var(--accent)' }}; color: #ffffff; font-size: 16px; font-weight: 700; line-height: 1; flex-shrink: 0;">{{ mb_strtoupper(mb_substr($platform['name'], 0, 1)) }}</span>
                                     <span class="font-display" style="font-weight: 600; font-size: 13px; color: var(--ink);">{{ $platform['name'] }}</span>
                                 </a>
                             @endforeach

@@ -28,7 +28,7 @@
                         <form method="POST" action="{{ route('operator.deletion-requests.team.reject', $request) }}" class="flex items-center gap-2">
                             @csrf
                             <label class="sr-only" for="team-reason-{{ $request->id }}">{{ __('Reason for rejecting') }}</label>
-                            <input id="team-reason-{{ $request->id }}" type="text" name="reason" placeholder="{{ __('Reason for rejecting') }}" required class="fx-input !min-h-[40px] w-56 text-sm">
+                            <input id="team-reason-{{ $request->id }}" type="text" name="reason" placeholder="{{ __('Reason for rejecting') }}" required class="fx-input !min-h-[44px] xl:!min-h-[40px] w-56 text-sm">
                             <button type="submit" class="fx-btn">{{ __('Reject') }}</button>
                         </form>
                     </div>
@@ -65,7 +65,7 @@
                         <form method="POST" action="{{ route('operator.deletion-requests.bulk.reject', $request) }}" class="flex items-center gap-2">
                             @csrf
                             <label class="sr-only" for="bulk-reason-{{ $request->id }}">{{ __('Reason for rejecting') }}</label>
-                            <input id="bulk-reason-{{ $request->id }}" type="text" name="reason" placeholder="{{ __('Reason for rejecting') }}" required class="fx-input !min-h-[40px] w-56 text-sm">
+                            <input id="bulk-reason-{{ $request->id }}" type="text" name="reason" placeholder="{{ __('Reason for rejecting') }}" required class="fx-input !min-h-[44px] xl:!min-h-[40px] w-56 text-sm">
                             <button type="submit" class="fx-btn">{{ __('Reject') }}</button>
                         </form>
                     </div>

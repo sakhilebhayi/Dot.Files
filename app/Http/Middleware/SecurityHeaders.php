@@ -25,13 +25,13 @@ class SecurityHeaders
             'Permissions-Policy' => 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
         ];
 
-        // Origins audited from resources/views on 2026-10-31: Bunny-free; unpkg (Alpine on the
-        // guest layout), maxcdn.bootstrapcdn.com (legacy guest stylesheet), Google Fonts,
-        // Unsplash photography, ui-avatars (Jetstream's default profile photo).
+        // Origins audited from resources/views (R-52): scripts, styles and fonts are all this site's own now
+        // (Roboto and the shared Dot UI from public/dot-ui, FilePond bundled by Vite). Only image hosts remain:
+        // Unsplash photography and ui-avatars (Jetstream's default profile photo).
         $csp = "default-src 'self'; "
-            ."script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; "
-            ."style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://maxcdn.bootstrapcdn.com; "
-            ."font-src 'self' data: https://fonts.gstatic.com https://maxcdn.bootstrapcdn.com; "
+            ."script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+            ."style-src 'self' 'unsafe-inline'; "
+            ."font-src 'self' data:; "
             ."img-src 'self' data: blob: https://images.unsplash.com https://ui-avatars.com; "
             ."connect-src 'self'; frame-src 'self'; frame-ancestors 'self'; object-src 'none'; "
             ."base-uri 'self'; report-uri /csp-report";
