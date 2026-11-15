@@ -62,7 +62,7 @@
             }
             .link-underline {
                 background-image: linear-gradient(currentColor, currentColor);
-                background-position: 0 100%;
+                background-position: 0 calc(50% + 11px);
                 background-repeat: no-repeat;
                 transition: background-size 220ms var(--ease-out);
             }
@@ -78,8 +78,8 @@
                 </a>
 
                 <div class="hidden md:flex items-center gap-8 font-mono text-[13px] tracking-wide uppercase text-[var(--ink-soft)]">
-                    <a href="#capabilities" class="link-underline hover:text-[var(--ink)] pb-0.5">Product</a>
-                    <a href="#features" class="link-underline hover:text-[var(--ink)] pb-0.5">Features</a>
+                    <a href="#capabilities" class="link-underline hover:text-[var(--ink)] inline-flex items-center min-h-[44px]">Product</a>
+                    <a href="#features" class="link-underline hover:text-[var(--ink)] inline-flex items-center min-h-[44px]">Features</a>
                 </div>
 
                 @if (Route::has('login'))
@@ -89,17 +89,17 @@
                                 My Files
                             </a>
                         @else
-                            <a href="{{ route('login') }}" class="hidden sm:block text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors">
+                            <a href="{{ route('login') }}" class="hidden sm:inline-flex items-center min-h-[44px] px-2 text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors">
                                 Sign in
                             </a>
                             @if (Route::has('register'))
-                                <a href="{{ route('register') }}" class="press px-5 py-2.5 bg-[var(--gold)] hover:bg-[var(--gold-deep)] text-[#2b2a25] text-sm font-display font-semibold rounded-lg transition-colors">
+                                <a href="{{ route('register') }}" class="press inline-flex items-center min-h-[44px] px-5 py-2.5 bg-[var(--gold)] hover:bg-[var(--gold-deep)] text-[#2b2a25] text-sm font-display font-semibold rounded-lg transition-colors">
                                     Create account
                                 </a>
                             @endif
                         @endauth
 
-                        <button id="mobile-menu-toggle" class="md:hidden press p-2 -mr-2 text-[var(--ink)]" aria-label="Toggle menu" aria-expanded="false">
+                        <button id="mobile-menu-toggle" class="md:hidden press inline-flex items-center justify-center w-11 h-11 -mr-2 text-[var(--ink)]" aria-label="Toggle menu" aria-expanded="false">
                             <svg id="icon-menu-open" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 7h16M4 12h16M4 17h16"></path>
                             </svg>
@@ -275,13 +275,13 @@
         <!-- Footer -->
         <footer class="py-14 px-5 sm:px-8 border-t border-[var(--line)] bg-[var(--paper)]">
             <div class="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-                <a href="/" class="flex items-center gap-2.5">
+                <a href="/" class="min-w-[44px] flex items-center gap-2.5">
                     <img src="{{ asset('images/logo.png') }}" alt="Dot.Files" class="h-11 w-auto opacity-90">
                 </a>
                 <div class="flex items-center gap-6 font-mono text-xs tracking-wide uppercase text-[var(--ink-soft)]">
-                    <a href="{{ route('policy.show') }}" class="hover:text-[var(--ink)] transition-colors">Privacy</a>
-                    <a href="{{ route('cookies') }}" class="hover:text-[var(--ink)] transition-colors">Cookies</a>
-                    <a href="{{ route('terms.show') }}" class="hover:text-[var(--ink)] transition-colors">Terms</a>
+                    <a href="{{ route('policy.show') }}" class="inline-flex items-center min-h-[44px] px-2 hover:text-[var(--ink)] transition-colors">Privacy</a>
+                    <a href="{{ route('cookies') }}" class="inline-flex items-center min-h-[44px] px-2 hover:text-[var(--ink)] transition-colors">Cookies</a>
+                    <a href="{{ route('terms.show') }}" class="inline-flex items-center min-h-[44px] px-2 hover:text-[var(--ink)] transition-colors">Terms</a>
                 </div>
                 <p class="font-mono text-xs tracking-wide text-[var(--ink-soft)]">
                     &copy; {{ date('Y') }} Dot.Files. Team file storage and management.
