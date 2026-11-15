@@ -83,15 +83,16 @@
                         </p>
                     </div>
                     @if ($canDecide && $share->file)
-                        <div class="flex items-center gap-2">
+                        {{-- Wraps on a phone: Approve, the reason field and Decline never run past the viewport (R-52). --}}
+                        <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
                             <form method="POST" action="{{ route('approvals.approve', $share) }}">
                                 @csrf
                                 <button type="submit" class="fx-btn fx-btn--oxide"><x-fx.icon name="check" /> {{ __('Approve') }}</button>
                             </form>
-                            <form method="POST" action="{{ route('approvals.decline', $share) }}" class="flex items-center gap-2">
+                            <form method="POST" action="{{ route('approvals.decline', $share) }}" class="flex w-full min-w-0 items-center gap-2 sm:w-auto">
                                 @csrf
                                 <label class="sr-only" for="note-{{ $share->id }}">{{ __('Reason (optional)') }}</label>
-                                <input id="note-{{ $share->id }}" type="text" name="note" maxlength="255" placeholder="{{ __('Reason (optional)') }}" class="fx-input !min-h-[40px] w-44 text-sm">
+                                <input id="note-{{ $share->id }}" type="text" name="note" maxlength="255" placeholder="{{ __('Reason (optional)') }}" class="fx-input !min-h-[44px] min-w-0 flex-1 text-sm xl:!min-h-[40px] sm:w-44 sm:flex-none">
                                 <button type="submit" class="fx-btn">{{ __('Decline') }}</button>
                             </form>
                         </div>

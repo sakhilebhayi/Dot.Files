@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dot-roboto">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,6 +8,11 @@
         <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
         <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
         <title>Dot.Files</title>
+
+        {{-- Roboto, self-hosted from this site (public/dot-ui), the face of every Dot platform: no font CDN. --}}
+        <link rel="preload" href="{{ asset('dot-ui/fonts/roboto/roboto-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-roboto.css') }}">
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-type.css') }}">
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 

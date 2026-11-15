@@ -148,7 +148,7 @@
                     <button type="button" class="fx-btn" wire:click="$toggle('sharingSelection')">
                         <x-fx.icon name="share" /> {{ __('Share selected') }}
                     </button>
-                    <button type="button" class="fx-btn fx-btn--danger-outline !min-h-[36px]" wire:click="requestBulkDeletion">
+                    <button type="button" class="fx-btn fx-btn--danger-outline !min-h-[44px] xl:!min-h-[36px]" wire:click="requestBulkDeletion">
                         {{ __('Request deletion') }}
                     </button>
 
@@ -287,7 +287,7 @@
                             @if ($renamingObject === $child->id)
                                 <form class="flex items-center gap-1.5" wire:submit.prevent="renameObject">
                                     <label class="sr-only" for="rename-{{ $child->id }}">{{ __('New name') }}</label>
-                                    <input id="rename-{{ $child->id }}" type="text" class="fx-input !min-h-[36px] text-sm" wire:model="renamingObjectState.name" x-init="$el.focus()">
+                                    <input id="rename-{{ $child->id }}" type="text" class="fx-input !min-h-[44px] xl:!min-h-[36px] text-sm" wire:model="renamingObjectState.name" x-init="$el.focus()">
                                     <button type="submit" class="fx-btn fx-btn--quiet" title="{{ __('Save name') }}"><x-fx.icon name="check" /></button>
                                     <button type="button" class="fx-btn fx-btn--quiet" wire:click="$set('renamingObject', null)" title="{{ __('Cancel') }}"><x-fx.icon name="x" /></button>
                                 </form>
@@ -358,8 +358,11 @@
                             @keydown.up.prevent="$el.previousElementSibling?.focus()"
                             @keydown.escape="$wire.clearFocus()">
                             <td class="fx-c-check">
-                                <input type="checkbox" class="fx-check" wire:model.live="selectedObjects" value="{{ $child->id }}"
-                                       aria-label="{{ __('Select') }} {{ $child->objectable->name }}">
+                                {{-- The label is the 44px touch target around the small box. --}}
+                                <label class="fx-hit">
+                                    <input type="checkbox" class="fx-check" wire:model.live="selectedObjects" value="{{ $child->id }}"
+                                           aria-label="{{ __('Select') }} {{ $child->objectable->name }}">
+                                </label>
                             </td>
                             <td>
                                 <div class="fx-cell-name">
@@ -372,7 +375,7 @@
                                         @if ($renamingObject === $child->id)
                                             <form class="flex items-center gap-1.5" wire:submit.prevent="renameObject">
                                                 <label class="sr-only" for="rename-row-{{ $child->id }}">{{ __('New name') }}</label>
-                                                <input id="rename-row-{{ $child->id }}" type="text" class="fx-input !min-h-[36px] text-sm" wire:model="renamingObjectState.name" x-init="$el.focus()">
+                                                <input id="rename-row-{{ $child->id }}" type="text" class="fx-input !min-h-[44px] xl:!min-h-[36px] text-sm" wire:model="renamingObjectState.name" x-init="$el.focus()">
                                                 <button type="submit" class="fx-btn fx-btn--quiet" title="{{ __('Save name') }}"><x-fx.icon name="check" /></button>
                                                 <button type="button" class="fx-btn fx-btn--quiet" wire:click="$set('renamingObject', null)" title="{{ __('Cancel') }}"><x-fx.icon name="x" /></button>
                                             </form>

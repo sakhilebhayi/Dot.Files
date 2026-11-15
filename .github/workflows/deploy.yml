@@ -149,10 +149,10 @@ jobs:
             echo "== asset ok: /build/$asset"
           done
 
-          # The shared Dot UI (search pill, platform switcher) is served from public/dot-ui. While the docroot is the folder
+          # The shared Dot UI (Roboto, header, search pill, platform switcher) is served from public/dot-ui. While the docroot is the folder
           # above the app that path is a symlink made above; check it really answers, so a missing link cannot ship an
           # unstyled header unnoticed.
-          for asset in dot-ui/css/dot-search.css dot-ui/css/dot-switcher.css dot-ui/js/dot-switcher.js; do
+          for asset in dot-ui/css/dot-roboto.css dot-ui/css/dot-header.css dot-ui/css/dot-search.css dot-ui/css/dot-switcher.css dot-ui/js/dot-nav.js dot-ui/js/dot-switcher.js dot-ui/fonts/roboto/roboto-latin-wght-normal.woff2; do
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "https://files.infodot.co.za/$asset" || true)
             if [ "$code" != "200" ]; then
               echo "::error::/$asset answered ${code:-no response} (expected 200): the docroot is not serving the shared Dot UI."; exit 1

@@ -110,7 +110,7 @@ class DotUiHeaderTest extends TestCase
     /** The markup of the header search only. */
     private function pillHtml(string $html): string
     {
-        $this->assertSame(1, preg_match('/<div class="fx-top-search">.*?(?=<div class="fx-top-switch">)/s', $html, $m), 'the header carries the search');
+        $this->assertSame(1, preg_match('/<div class="dh-search" id="dh-search" data-dh-search>.*?(?=<div class="dh-end">)/s', $html, $m), 'the header carries the search');
 
         return $m[0];
     }
@@ -394,7 +394,7 @@ class DotUiHeaderTest extends TestCase
 
         $html = $this->actingAs($this->memberOf(self::ACME, 'Acme Ltd'))->get('/files')->assertOk()->getContent();
 
-        foreach (['css/dot-fonts.css', 'css/dot-tokens.css', 'css/dot-search.css', 'css/dot-switcher-fonts.css', 'css/dot-switcher.css', 'js/dot-switcher.js', 'js/dot-search.js'] as $asset) {
+        foreach (['css/dot-roboto.css', 'css/dot-type.css', 'css/dot-tokens.css', 'css/dot-search.css', 'css/dot-switcher.css', 'css/dot-header.css', 'js/dot-switcher.js', 'js/dot-search.js', 'js/dot-nav.js'] as $asset) {
             $this->assertStringContainsString(asset('dot-ui/'.$asset), $html, $asset.' is linked from this site');
             $this->assertFileExists(public_path('dot-ui/'.$asset));
         }
@@ -416,8 +416,9 @@ class DotUiHeaderTest extends TestCase
             $this->assertFileExists(public_path($src));
         }
 
-        // The hand copy's font and arrow are gone with it: the shared package ships its own.
+        // The hand copy's font and arrow are gone with it: the shared package ships its own, and Roboto replaced Geist (R-52).
         $this->assertFileDoesNotExist(public_path('fonts/archivo-latin.woff2'));
+        $this->assertFileDoesNotExist(public_path('fonts/geist-latin.woff2'));
         $this->assertFileDoesNotExist(public_path('img/arrow-mask.png'));
     }
 

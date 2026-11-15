@@ -2,7 +2,8 @@
     "private": true,
     "scripts": {
         "dev": "vite",
-        "build": "vite build"
+        "build": "vite build",
+        "test:js": "node --test tests/js/realtime.test.mjs"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.7",
@@ -14,6 +15,7 @@
     },
     "dependencies": {
         "axios": "^1.7",
+        "filepond": "^4.32.14",
         "laravel-echo": "^2.1.0",
         "lodash": "^4.17.21",
         "pusher-js": "^8.4.0"

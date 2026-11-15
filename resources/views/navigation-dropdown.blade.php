@@ -1,146 +1,81 @@
-<nav x-data="{ open: false, account: false }" class="fx-top" @keydown.escape.window="open = false; account = false">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="fx-top-row flex items-center justify-between min-h-12 gap-x-4">
-            <div class="flex items-center gap-5 min-w-0">
-                <a href="{{ route('files') }}" class="flex items-center press" aria-label="Dot.Files home">
-                    <picture>
-                        <source srcset="{{ asset('images/logo-light.png') }}" media="(prefers-color-scheme: dark)">
-                        <img src="{{ asset('images/logo.png') }}" alt="Dot.Files" width="32" height="32" class="h-8 w-auto">
-                    </picture>
-                </a>
+{{--
+  The top bar of every signed-in page: the shared Dot header (dot-ui 0.6.0, <x-dot.header>), one row, search truly centred by the
+  header grid, primary links, the platform switcher, the account menu; on a phone the shared drawer and full-screen search sheet.
+  The Livewire component needs ONE root element, and the header prints the bar and its drawer side by side, so the wrapper
+  is `display: contents` (.fx-chrome in app.css).
+--}}
+@php
+    $user = Auth::user();
+    $team = $user->currentTeam;
 
-                <div class="hidden sm:flex items-center gap-1">
-                    <a href="{{ route('files') }}" class="fx-top-link" @if (request()->routeIs('files')) aria-current="page" @endif>
-                        {{ __('Files') }}
-                    </a>
-                    <a href="{{ route('shared') }}" class="fx-top-link" @if (request()->routeIs('shared')) aria-current="page" @endif>
-                        {{ __('Shared with me') }}
-                    </a>
-                    <a href="{{ route('approvals') }}" class="fx-top-link" @if (request()->routeIs('approvals')) aria-current="page" @endif>
-                        {{ __('Sharing approvals') }}
-                    </a>
-                    <a href="{{ route('trash') }}" class="fx-top-link" @if (request()->routeIs('trash')) aria-current="page" @endif>
-                        {{ __('Trash') }}
-                    </a>
-                    @if (Auth::user()->is_platform_operator)
-                        <a href="{{ route('operator.deletion-requests.index') }}" class="fx-top-link" @if (request()->routeIs('operator.*')) aria-current="page" @endif>
-                            {{ __('Operator queue') }}
-                        </a>
-                    @endif
-                </div>
-            </div>
+    $nav = [
+        ['label' => __('Files'), 'href' => route('files'), 'current' => request()->routeIs('files')],
+        ['label' => __('Shared with me'), 'href' => route('shared'), 'current' => request()->routeIs('shared')],
+        ['label' => __('Sharing approvals'), 'href' => route('approvals'), 'current' => request()->routeIs('approvals')],
+        ['label' => __('Trash'), 'href' => route('trash'), 'current' => request()->routeIs('trash')],
+    ];
 
-            {{-- The ecosystem search bar: the shared Dot UI pill, on this company's files (R-28 §3, R-51). --}}
-            <div class="fx-top-search">
-                <livewire:file-search />
-            </div>
+    if ($user->is_platform_operator) {
+        $nav[] = ['label' => __('Operator queue'), 'href' => route('operator.deletion-requests.index'), 'current' => request()->routeIs('operator.*')];
+    }
 
-            {{-- Platform switcher (shared Dot UI): what InfoDot says the current company holds; a personal workspace has no company. --}}
-            @php($switcherTeam = Auth::user()->currentTeam)
-            <div class="fx-top-switch">
-                <x-dot.switcher platform="files"
-                    :company="$switcherTeam && ! $switcherTeam->personal_team ? $switcherTeam->infodot_team_uuid : null"
-                    :company-name="$switcherTeam?->name"
-                    logos="/dot-ui/img/platforms" />
-            </div>
+    $links = [['label' => __('Profile'), 'href' => route('profile.show'), 'current' => request()->routeIs('profile.show')]];
 
-            {{-- Account / company menu --}}
-            <div class="hidden sm:block relative">
-                <button type="button" class="fx-top-link flex items-center gap-2" @click="account = ! account"
-                        :aria-expanded="account.toString()" aria-haspopup="menu">
-                    <span class="inline-grid place-items-center w-6 h-6 rounded-md text-xs font-semibold"
-                          style="background: var(--oxide-wash); color: var(--oxide);">
-                        {{ mb_strtoupper(mb_substr(Auth::user()->currentTeam?->name ?? Auth::user()->name, 0, 1)) }}
-                    </span>
-                    <span class="max-w-[14rem] truncate">{{ Auth::user()->currentTeam?->name ?? Auth::user()->name }}</span>
-                    <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg>
-                </button>
+    if (Laravel\Jetstream\Jetstream::hasApiFeatures()) {
+        $links[] = ['label' => __('API tokens'), 'href' => route('api-tokens.index'), 'current' => request()->routeIs('api-tokens.index')];
+    }
 
-                <div x-cloak x-show="account" @click.outside="account = false"
-                     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
-                     class="fx-menu absolute right-0 mt-2" role="menu">
-                    <p class="px-2.5 pt-1.5 pb-1 text-xs" style="color: var(--ink-faint);">{{ Auth::user()->name }} · {{ Auth::user()->email }}</p>
+    if (Laravel\Jetstream\Jetstream::hasTeamFeatures()) {
+        $links[] = ['rule' => true];
+        $links[] = ['label' => __('Company settings'), 'href' => $team ? route('teams.show', $team->id) : route('teams.create')];
 
-                    <a href="{{ route('profile.show') }}" role="menuitem">{{ __('Profile') }}</a>
-                    @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
-                        <a href="{{ route('api-tokens.index') }}" role="menuitem">{{ __('API tokens') }}</a>
-                    @endif
+        if (Gate::forUser($user)->check('create', Laravel\Jetstream\Jetstream::newTeamModel())) {
+            $links[] = ['label' => __('New company'), 'href' => route('teams.create')];
+        }
 
-                    @if (Laravel\Jetstream\Jetstream::hasTeamFeatures())
-                        <div class="my-1 border-t" style="border-color: var(--line);"></div>
-                        <a href="{{ Auth::user()->currentTeam ? route('teams.show', Auth::user()->currentTeam->id) : route('teams.create') }}" role="menuitem">{{ __('Company settings') }}</a>
-                        @can('create', Laravel\Jetstream\Jetstream::newTeamModel())
-                            <a href="{{ route('teams.create') }}" role="menuitem">{{ __('New company') }}</a>
-                        @endcan
+        $teams = $user->allTeams();
+        if ($teams->count() > 1) {
+            $links[] = ['rule' => true];
+            $links[] = ['heading' => __('Switch company')];
+            foreach ($teams as $other) {
+                $links[] = [
+                    'label' => $other->name,
+                    'current' => $user->isCurrentTeam($other),
+                    'form' => ['action' => route('current-team.update'), 'method' => 'PUT', 'fields' => ['team_id' => $other->id]],
+                ];
+            }
+        }
+    }
 
-                        @if (Auth::user()->allTeams()->count() > 1)
-                            <div class="my-1 border-t" style="border-color: var(--line);"></div>
-                            <p class="px-2.5 pt-1 pb-0.5 text-xs" style="color: var(--ink-faint);">{{ __('Switch company') }}</p>
-                            @foreach (Auth::user()->allTeams() as $team)
-                                <form method="POST" action="{{ route('current-team.update') }}">
-                                    @method('PUT')
-                                    @csrf
-                                    <input type="hidden" name="team_id" value="{{ $team->id }}">
-                                    <button type="submit" role="menuitem">
-                                        @if (Auth::user()->isCurrentTeam($team))
-                                            <x-fx.icon name="check" class="w-4 h-4" style="color: var(--moss);" />
-                                        @else
-                                            <span class="w-4"></span>
-                                        @endif
-                                        <span class="truncate">{{ $team->name }}</span>
-                                    </button>
-                                </form>
-                            @endforeach
-                        @endif
-                    @endif
+    $account = [
+        'name' => $user->name,
+        'email' => $user->email,
+        'team' => $team?->name,
+        'links' => $links,
+        'signOut' => ['action' => route('logout')],
+    ];
+@endphp
+<div class="fx-chrome">
+    <x-dot.header
+        brand-href="{{ route('files') }}" brand-label="Dot.Files home"
+        :nav="$nav" :account="$account" :context="$team?->name"
+        drawer-title="{{ __('Menu') }}">
+        <x-slot:brand>
+            <img class="dh-logo-day" src="{{ asset('images/logo.png') }}" alt="Dot.Files" width="32" height="32">
+            <img class="dh-logo-night" src="{{ asset('images/logo-light.png') }}" alt="" width="32" height="32">
+        </x-slot:brand>
 
-                    <div class="my-1 border-t" style="border-color: var(--line);"></div>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" role="menuitem">{{ __('Sign out') }}</button>
-                    </form>
-                </div>
-            </div>
+        {{-- The ecosystem search: the shared pill on this company's files (R-28 §3, R-51). Same logic on every page and width. --}}
+        <x-slot:search>
+            <livewire:file-search />
+        </x-slot:search>
 
-            {{-- Mobile toggle --}}
-            <button @click="open = ! open" aria-label="{{ __('Toggle navigation menu') }}" :aria-expanded="open.toString()"
-                    class="sm:hidden fx-top-link">
-                <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-                    <path :class="{ 'hidden': open }" d="M4 7h16M4 12h16M4 17h16" />
-                    <path :class="{ 'hidden': ! open }" class="hidden" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-    </div>
-
-    {{-- Mobile menu --}}
-    <div x-cloak x-show="open" class="sm:hidden border-t px-4 pb-4 pt-2 space-y-1" style="border-color: var(--line);">
-        <a href="{{ route('files') }}" class="fx-top-link block">{{ __('Files') }}</a>
-        <a href="{{ route('shared') }}" class="fx-top-link block">{{ __('Shared with me') }}</a>
-        <a href="{{ route('approvals') }}" class="fx-top-link block">{{ __('Sharing approvals') }}</a>
-        <a href="{{ route('trash') }}" class="fx-top-link block">{{ __('Trash') }}</a>
-        @if (Auth::user()->is_platform_operator)
-            <a href="{{ route('operator.deletion-requests.index') }}" class="fx-top-link block">{{ __('Operator queue') }}</a>
-        @endif
-        <div class="border-t my-2" style="border-color: var(--line);"></div>
-        <p class="px-2.5 text-xs" style="color: var(--bar-faint);">{{ Auth::user()->name }} · {{ Auth::user()->currentTeam?->name }}</p>
-        <a href="{{ route('profile.show') }}" class="fx-top-link block">{{ __('Profile') }}</a>
-        @if (Laravel\Jetstream\Jetstream::hasTeamFeatures())
-            <a href="{{ Auth::user()->currentTeam ? route('teams.show', Auth::user()->currentTeam->id) : route('teams.create') }}" class="fx-top-link block">{{ __('Company settings') }}</a>
-            @foreach (Auth::user()->allTeams() as $team)
-                @unless (Auth::user()->isCurrentTeam($team))
-                    <form method="POST" action="{{ route('current-team.update') }}">
-                        @method('PUT')
-                        @csrf
-                        <input type="hidden" name="team_id" value="{{ $team->id }}">
-                        <button type="submit" class="fx-top-link block w-full text-left">{{ __('Switch to') }} {{ $team->name }}</button>
-                    </form>
-                @endunless
-            @endforeach
-        @endif
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit" class="fx-top-link block w-full text-left">{{ __('Sign out') }}</button>
-        </form>
-    </div>
-</nav>
+        {{-- Platform switcher (shared Dot UI): what InfoDot says the current company holds; a personal workspace has no company. --}}
+        <x-slot:tools>
+            <x-dot.switcher platform="files"
+                :company="$team && ! $team->personal_team ? $team->infodot_team_uuid : null"
+                :company-name="$team?->name"
+                logos="/dot-ui/img/platforms" />
+        </x-slot:tools>
+    </x-dot.header>
+</div>
