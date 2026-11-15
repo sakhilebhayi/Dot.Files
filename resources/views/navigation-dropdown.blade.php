@@ -61,8 +61,8 @@
         :nav="$nav" :account="$account" :context="$team?->name"
         drawer-title="{{ __('Menu') }}">
         <x-slot:brand>
-            <img class="dh-logo-day" src="{{ asset('images/logo.png') }}" alt="Dot.Files" width="32" height="32">
-            <img class="dh-logo-night" src="{{ asset('images/logo-light.png') }}" alt="" width="32" height="32">
+            <img class="dh-logo-day" src="{{ asset('images/logo-header.png') }}" alt="Dot.Files" width="32" height="32">
+            <img class="dh-logo-night" src="{{ asset('images/logo-header-light.png') }}" alt="" width="32" height="32">
         </x-slot:brand>
 
         {{-- The ecosystem search: the shared pill on this company's files (R-28 §3, R-51). Same logic on every page and width. --}}

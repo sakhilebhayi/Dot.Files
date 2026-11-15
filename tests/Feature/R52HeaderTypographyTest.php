@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Livewire\FileBrowser;
 use App\Http\Livewire\FileSearch;
 use App\Models\File;
 use App\Models\Team;
@@ -119,7 +120,7 @@ class R52HeaderTypographyTest extends TestCase
     {
         $html = $this->actingAs($this->owner)->get('/files')->assertOk()->getContent();
 
-        foreach (['dot-nav.js', 'dot-search.js', 'dot-switcher.js'] as $js) {
+        foreach (['dot-ui-core.min.js'] as $js) {
             $this->assertStringContainsString(asset('dot-ui/js/'.$js), $html);
         }
 
@@ -142,6 +143,37 @@ class R52HeaderTypographyTest extends TestCase
         Livewire::actingAs($this->owner)->test(FileSearch::class)->set('query', 'zzzz-no-such')->assertSee('Nothing matches');
     }
 
+    /** 0.6.1 tenant sweep: the file register's own filter (the header's ?search= lands here) keeps the company scope beside the text match. */
+    public function test_the_register_filter_never_shows_another_companys_match(): void
+    {
+        $other = User::factory()->withPersonalTeam()->create();
+        $globex = Team::forceCreate(['user_id' => $other->id, 'name' => 'Globex', 'personal_team' => false]);
+        $this->makeFile($globex, 'Quarterly secrets.txt');
+
+        $root = $this->acme->objects()->withoutGlobalScope('team')->whereNull('parent_id')->first();
+
+        Livewire::actingAs($this->owner)->test(FileBrowser::class, ['object' => $root, 'ancestors' => collect()])
+            ->set('query', 'Quarterly')
+            ->assertSee('Quarterly budget.txt')->assertDontSee('Quarterly secrets.txt');
+
+        $this->actingAs($this->owner)->get('/files?search=Quarterly')->assertOk()
+            ->assertSee('Quarterly budget.txt')->assertDontSee('Quarterly secrets.txt');
+    }
+
+    /** The 32px header logo was the 2362px, 196 kB brand PNG (and the hidden night logo another 84 kB): the largest paint of /o/<doc> on a phone. */
+    public function test_the_header_logos_are_small_derivatives_not_the_full_brand_files(): void
+    {
+        $html = $this->actingAs($this->owner)->get('/files')->assertOk()->getContent();
+
+        foreach (['images/logo-header.png', 'images/logo-header-light.png'] as $logo) {
+            $this->assertStringContainsString(asset($logo), $html);
+            $this->assertLessThan(20_000, filesize(public_path($logo)), $logo.' stays small');
+            [$w, $h] = getimagesize(public_path($logo));
+            $this->assertSame([96, 96], [$w, $h], 'three times the 32px it is drawn at');
+        }
+        $this->assertStringNotContainsString(asset('images/logo.png'), substr($html, 0, (int) strpos($html, '</header>')), 'the full brand file is not fetched by the header');
+    }
+
     public function test_a_signed_out_visitor_gets_no_header_search(): void
     {
         $this->get('/login')->assertOk()->assertDontSee('<header class="dh"', false)->assertDontSee('dsr-input', false);
@@ -154,8 +186,8 @@ class R52HeaderTypographyTest extends TestCase
         $html = $this->actingAs($this->owner)->get('/files')->assertOk()->getContent();
 
         $this->assertMatchesRegularExpression('/<html[^>]*class="dot-roboto"/', $html);
-        $this->assertStringContainsString(asset('dot-ui/css/dot-roboto.css'), $html);
-        $this->assertStringContainsString(asset('dot-ui/css/dot-type.css'), $html);
+        // 0.6.1: one minified stylesheet (roboto, type, tokens, search, switcher, header) first in the head.
+        $this->assertStringContainsString(asset('dot-ui/css/dot-ui.min.css'), $html);
         $this->assertStringContainsString('dot-ui/fonts/roboto/roboto-latin-wght-normal.woff2', $html);
 
         $roboto = (string) file_get_contents(public_path('dot-ui/css/dot-roboto.css'));

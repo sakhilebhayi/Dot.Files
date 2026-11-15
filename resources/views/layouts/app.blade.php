@@ -10,13 +10,8 @@
 
         {{-- Roboto is the face of every Dot platform: self-hosted from this site (public/dot-ui/fonts/roboto), no font CDN. --}}
         <link rel="preload" href="{{ asset('dot-ui/fonts/roboto/roboto-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
-        {{-- Shared Dot UI (typography, search pill, switcher, header), served from this site's own public/dot-ui. Loaded before the app CSS so the host mapping block in app.css wins. --}}
-        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-roboto.css') }}">
-        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-type.css') }}">
-        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-tokens.css') }}">
-        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-search.css') }}">
-        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-switcher.css') }}">
-        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-header.css') }}">
+        {{-- Shared Dot UI 0.6.1 (typography, tokens, search pill, switcher, header in ONE minified stylesheet), served from this site's own public/dot-ui. Loaded before the app CSS so the host mapping block in app.css wins. --}}
+        <link rel="stylesheet" href="{{ asset('dot-ui/css/dot-ui.min.css') }}">
         {{-- FilePond is bundled by Vite (resources/js/filepond.js): no third-party CDN, so upload works offline and under a strict CSP. --}}
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -50,9 +45,7 @@
 
         @stack('modals')
 
-        <script src="{{ asset('dot-ui/js/dot-switcher.js') }}" defer></script>
-        <script src="{{ asset('dot-ui/js/dot-search.js') }}" defer></script>
-        <script src="{{ asset('dot-ui/js/dot-nav.js') }}" defer></script>
+        <script src="{{ asset('dot-ui/js/dot-ui-core.min.js') }}" defer></script>
         @livewireScripts
     </body>
 </html>
