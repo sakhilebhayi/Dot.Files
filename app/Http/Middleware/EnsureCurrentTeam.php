@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -16,7 +17,8 @@ class EnsureCurrentTeam
     {
         $user = $request->user();
 
-        if ($user && is_null($user->current_team_id)) {
+        // Only this app's own users have teams (the shared sign-in package's test double does not).
+        if ($user instanceof User && is_null($user->current_team_id)) {
             $personalTeam = $user->personalTeam();
 
             if ($personalTeam) {

@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureCompanyHoldsPlatform;
 use App\Http\Middleware\EnsureCurrentTeam;
 use App\Http\Middleware\EnsurePlatformOperator;
+use App\Http\Middleware\RefuseLocalSignIn;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Foundation\Application;
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'verified' => EnsureEmailIsVerified::class,
             'operator' => EnsurePlatformOperator::class,
+            'local.signin' => RefuseLocalSignIn::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

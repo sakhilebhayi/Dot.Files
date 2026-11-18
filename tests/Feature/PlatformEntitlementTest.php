@@ -75,12 +75,20 @@ class PlatformEntitlementTest extends TestCase
         return $entitled === null ? $team : $team + ['entitled' => $entitled, 'access' => $entitled ? null : ($access ?? 'not_activated')];
     }
 
+    /** R-54: a person has ONE InfoDot id across sign-ins (the same email must not look like a different identity). */
+    private function infodotIdFor(string $email): string
+    {
+        $h = md5($email);
+
+        return substr($h, 0, 8).'-'.substr($h, 8, 4).'-4'.substr($h, 13, 3).'-8'.substr($h, 17, 3).'-'.substr($h, 20, 12);
+    }
+
     private function signIn(string $email, array $teams, ?string $current = null)
     {
         Http::swap(new Factory);
         Http::fake([self::REDEEM => Http::response([
             'platform' => 'files',
-            'user' => ['id' => 1, 'uuid' => (string) Str::uuid(), 'name' => ucfirst(strstr($email, '@', true)), 'email' => $email, 'email_verified' => true],
+            'user' => ['id' => 1, 'uuid' => $this->infodotIdFor($email), 'name' => ucfirst(strstr($email, '@', true)), 'email' => $email, 'email_verified' => true],
             'teams' => $teams,
             'current_team_id' => 1,
             'current_team_uuid' => $current,
