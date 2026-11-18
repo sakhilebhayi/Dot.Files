@@ -4,7 +4,7 @@
     <style>
         .sso-wrap { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; box-sizing: border-box; }
         .sso-panel { width: 100%; max-width: 28rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); padding: 32px 28px; box-sizing: border-box; }
-        .sso-logo { display: block; height: 32px; width: auto; margin: 0 0 24px; }
+        .sso-logo { display: block; height: 72px; width: 72px; object-fit: contain; margin: 0 0 8px; }
         .sso-logo--dark { display: none; }
         :root[data-theme='dark'] .sso-logo--light { display: none; }
         :root[data-theme='dark'] .sso-logo--dark { display: block; }
@@ -40,8 +40,8 @@
     </style>
     <main class="sso-wrap">
         <div class="sso-panel">
-            <img class="sso-logo sso-logo--light" src="{{ asset('images/logo.png') }}" alt="Dot.Files" width="32" height="32">
-            <img class="sso-logo sso-logo--dark" src="{{ asset('images/logo-light.png') }}" alt="" width="32" height="32" aria-hidden="true">
+            <img class="sso-logo sso-logo--light" src="{{ asset('images/logo.png') }}" alt="Dot.Files" width="72" height="72">
+            <img class="sso-logo sso-logo--dark" src="{{ asset('images/logo-light.png') }}" alt="" width="72" height="72" aria-hidden="true">
             {{ $slot }}
         </div>
     </main>
