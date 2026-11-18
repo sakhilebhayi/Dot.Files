@@ -11,6 +11,7 @@ use App\Http\Controllers\SharedFileController;
 use App\Http\Controllers\TrashController;
 use App\Models\File;
 use App\Services\FileShareService;
+use App\Support\CentralSignIn;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -128,6 +129,10 @@ Route::middleware(['auth', 'verified', 'operator'])->prefix('operator')->name('o
 // points at it lands on InfoDot's registration in SSO-only mode, else on the login page.
 if (! Features::enabled(Features::registration())) {
     Route::get('/register', function () {
+        if (CentralSignIn::active()) {
+            return redirect()->to(CentralSignIn::register('/login'));
+        }
+
         $infodot = (string) config('ecosystem.platforms.infodot.url', '');
 
         if ($infodot !== '' && config('ecosystem.sso_only')) {

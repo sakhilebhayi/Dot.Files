@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Auth;
 
 use App\Actions\Ecosystem\ProvisionUserFromInfoDot;
 use App\Actions\Ecosystem\SyncTeamsFromInfoDot;
+use App\Exceptions\ClaimRequired;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\InfoDot\EntitlementRefusal;
 use App\Services\InfoDot\IdentityClient;
 use App\Services\InfoDot\InfoDotUnavailable;
 use App\Services\InfoDot\RedeemedCompanies;
+use Dot\SsoClient\Support\ClaimService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,6 +21,8 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 class EcosystemAuthController extends Controller
 {
+    private const OBJECT_LINK = '#^/o/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$#i';
+
     /** A GET (an old link with the token in the URL) is not honoured: the token is never read. */
     public function legacy(): RedirectResponse
     {
@@ -107,7 +111,22 @@ class EcosystemAuthController extends Controller
                 return EntitlementRefusal::response($request, $reason);
             }
 
-            $user = $identity ? $provision($identity) : null;
+            try {
+                $user = $identity ? $provision($identity) : null;
+            } catch (ClaimRequired $claim) {
+                // R-54: an unverified or unlinked local account holds this address. Its password is NOT replaced; the
+                // person proves the address with a code first (the shared package's claim flow). Only Files' own /o/{uuid}
+                // deep link is carried through.
+                $raw = $request->post('redirect');
+
+                return app(ClaimService::class)->begin(
+                    $request,
+                    $claim->user,
+                    $claim->claims,
+                    is_string($raw) && preg_match(self::OBJECT_LINK, $raw) ? $raw : null,
+                    '',
+                );
+            }
 
             if ($user && $identity) {
                 $syncTeams($user, $identity);
@@ -131,7 +150,7 @@ class EcosystemAuthController extends Controller
         // honoured, so this can never be turned into an open redirect.
         $redirect = $request->post('redirect');
 
-        if (is_string($redirect) && preg_match('#^/o/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$#i', $redirect)) {
+        if (is_string($redirect) && preg_match(self::OBJECT_LINK, $redirect)) {
             return redirect($redirect);
         }
 

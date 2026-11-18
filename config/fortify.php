@@ -73,7 +73,8 @@ return [
     |
     */
 
-    'middleware' => ['web'],
+    // R-54: `local.signin` refuses the password, reset and two-factor POSTs while InfoDot is the only front door.
+    'middleware' => ['web', 'local.signin'],
 
     /*
     |--------------------------------------------------------------------------

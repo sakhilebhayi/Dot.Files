@@ -6,6 +6,7 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Support\CentralSignIn;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Fortify\Fortify;
 
@@ -44,8 +45,14 @@ class FortifyServiceProvider extends ServiceProvider
             // to the matching InfoDot page — no Dot.Files login, registration or recovery
             // interface renders. The POST handlers underneath stay wired for break-glass
             // (ECOSYSTEM_SSO_ONLY=false), and the SSO callback (/auth/ecosystem) is untouched.
+            // R-54: with DOTSSO_ENABLED every page goes to the central sign-in (/sso/login, which names this platform and
+            // carries the deep link); registration goes to its create-account screen.
             $ssoPage = function (string $view, string $infodotPath) {
                 return function () use ($view, $infodotPath) {
+                    if (CentralSignIn::active()) {
+                        return redirect()->to($infodotPath === '/register' ? CentralSignIn::register('/login') : CentralSignIn::login());
+                    }
+
                     $infodot = (string) config('ecosystem.platforms.infodot.url', '');
 
                     if ($infodot !== '' && config('ecosystem.sso_only')) {
@@ -60,6 +67,10 @@ class FortifyServiceProvider extends ServiceProvider
             Fortify::registerView($ssoPage('auth.register', '/register'));
             Fortify::requestPasswordResetLinkView($ssoPage('auth.forgot-password', '/forgot-password'));
             Fortify::resetPasswordView(function () {
+                if (CentralSignIn::active()) {
+                    return redirect()->to(CentralSignIn::login());
+                }
+
                 $infodot = (string) config('ecosystem.platforms.infodot.url', '');
 
                 if ($infodot !== '' && config('ecosystem.sso_only')) {

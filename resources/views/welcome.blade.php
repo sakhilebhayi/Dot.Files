@@ -89,11 +89,11 @@
                                 My Files
                             </a>
                         @else
-                            <a href="{{ route('login') }}" class="hidden sm:inline-flex items-center min-h-[44px] px-2 text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors">
+                            <a href="{{ \App\Support\CentralSignIn::login() }}" class="hidden sm:inline-flex items-center min-h-[44px] px-2 text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors">
                                 Sign in
                             </a>
                             @if (Route::has('register'))
-                                <a href="{{ route('register') }}" class="press inline-flex items-center min-h-[44px] px-5 py-2.5 bg-[var(--gold)] hover:bg-[var(--gold-deep)] text-[#2b2a25] text-sm font-display font-semibold rounded-lg transition-colors">
+                                <a href="{{ \App\Support\CentralSignIn::register(route('register')) }}" class="press inline-flex items-center min-h-[44px] px-5 py-2.5 bg-[var(--gold)] hover:bg-[var(--gold-deep)] text-[#2b2a25] text-sm font-display font-semibold rounded-lg transition-colors">
                                     Create account
                                 </a>
                             @endif
@@ -116,7 +116,7 @@
                     <a href="#capabilities" class="px-3 py-2.5 text-[var(--ink-soft)] hover:text-[var(--ink)]">Product</a>
                     <a href="#features" class="px-3 py-2.5 text-[var(--ink-soft)] hover:text-[var(--ink)]">Features</a>
                     @guest
-                        <a href="{{ route('login') }}" class="px-3 py-2.5 text-[var(--ink-soft)] hover:text-[var(--ink)]">Sign in</a>
+                        <a href="{{ \App\Support\CentralSignIn::login() }}" class="px-3 py-2.5 text-[var(--ink-soft)] hover:text-[var(--ink)]">Sign in</a>
                     @endguest
                 </div>
             </div>
@@ -152,7 +152,7 @@
 
                     @guest
                         <div class="flex flex-wrap items-center gap-4">
-                            <a href="{{ route('register') }}" class="press px-7 py-3.5 bg-[var(--gold)] hover:bg-[var(--gold-deep)] text-[#2b2a25] font-display font-semibold rounded-lg transition-colors">
+                            <a href="{{ \App\Support\CentralSignIn::register(route('register')) }}" class="press px-7 py-3.5 bg-[var(--gold)] hover:bg-[var(--gold-deep)] text-[#2b2a25] font-display font-semibold rounded-lg transition-colors">
                                 Create account
                             </a>
                             <a href="#features" class="press flex items-center gap-2 px-7 py-3.5 text-[var(--ink)] font-medium rounded-lg border border-[var(--line)] hover:border-[var(--ink-faint)] transition-colors">
@@ -261,10 +261,10 @@
 
                 @guest
                     <div class="flex flex-wrap justify-center gap-4">
-                        <a href="{{ route('register') }}" class="press px-8 py-3.5 bg-[var(--gold)] hover:bg-[var(--gold-deep)] text-[#2b2a25] font-display font-semibold rounded-lg transition-colors">
+                        <a href="{{ \App\Support\CentralSignIn::register(route('register')) }}" class="press px-8 py-3.5 bg-[var(--gold)] hover:bg-[var(--gold-deep)] text-[#2b2a25] font-display font-semibold rounded-lg transition-colors">
                             Create account
                         </a>
-                        <a href="{{ route('login') }}" class="press px-8 py-3.5 text-[var(--paper)] font-medium rounded-lg border border-[rgba(251,247,238,0.18)] hover:border-[rgba(251,247,238,0.4)] transition-colors">
+                        <a href="{{ \App\Support\CentralSignIn::login() }}" class="press px-8 py-3.5 text-[var(--paper)] font-medium rounded-lg border border-[rgba(251,247,238,0.18)] hover:border-[rgba(251,247,238,0.4)] transition-colors">
                             Sign in
                         </a>
                     </div>
