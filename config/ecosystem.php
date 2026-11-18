@@ -87,6 +87,7 @@ return [
         'press' => env('DOT_SERVICE_SECRET_PRESS'),
         'projects' => env('DOT_SERVICE_SECRET_PROJECTS'),
         'sheet' => env('DOT_SERVICE_SECRET_SHEET'),
+        'tasks' => env('DOT_SERVICE_SECRET_TASKS'),
     ]),
 
     /*
