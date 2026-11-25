@@ -47,6 +47,22 @@ class EntitlementRefusal
     }
 
     /**
+     * InfoDot has Dot.Files switched off (maintenance or unavailable): a plain 503 that reads nothing of the company's files.
+     * JSON and Livewire callers get a JSON body with the reason; both carry Retry-After so a client waits a minute.
+     */
+    public static function unavailable(Request $request, ?string $message): Response
+    {
+        $message = $message ?? 'Dot.Files is temporarily unavailable.';
+
+        if ($request->expectsJson() || $request->is('livewire/*') || $request->hasHeader('X-Livewire')) {
+            return response()->json(['message' => $message, 'reason' => 'platform_unavailable'], 503)->header('Retry-After', '60');
+        }
+
+        return response()->view('errors.platform-unavailable', ['message' => $message, 'signedIn' => true], 503)
+            ->header('Cache-Control', 'no-store, private')->header('Retry-After', '60');
+    }
+
+    /**
      * @return array{title: string, message: string}
      */
     public static function wording(?string $status, ?string $company = null): array

@@ -496,7 +496,7 @@ class PlatformEntitlementTest extends TestCase
         Log::shouldHaveReceived('warning')->withArgs(fn ($message) => str_contains((string) $message, 'entitlement check gave no answer'))->once();
     }
 
-    public function test_the_answer_is_cached_per_company_for_ten_minutes_and_a_failure_for_a_minute(): void
+    public function test_the_answer_is_cached_per_company_for_a_minute_and_a_failure_for_a_minute(): void
     {
         $owner = $this->ownerOf();
         $this->infodotSays(Http::response($this->holding(['status' => 'included', 'entitled' => true])));
@@ -509,7 +509,7 @@ class PlatformEntitlementTest extends TestCase
         $this->actingAs($owner)->get('/files')->assertOk();
         $this->assertSame(1, $this->companyCalls());
 
-        // After ten minutes it asks again, and the answer has changed.
+        // After a minute it asks again, and the answer has changed.
         Carbon::setTestNow(now()->addSeconds(10));
         $this->infodotSays(Http::response($this->holding(['status' => 'suspended', 'entitled' => false])));
         $this->actingAs($owner)->get('/files')->assertStatus(403);
@@ -696,5 +696,244 @@ class PlatformEntitlementTest extends TestCase
         // The personal workspace is always there too.
         $this->actingAs($owner->fresh())->put(route('current-team.update'), ['team_id' => $owner->personalTeam()->id])->assertRedirect('/files');
         $this->actingAs($owner->fresh())->get('/files')->assertOk();
+    }
+
+    // ---- R-61 availability contract --------------------------------------------------------------
+
+    /** This platform's own row, with the R-61 fields. */
+    private function row(bool $available, bool $entitled = true, ?string $message = null, string $status = 'included'): array
+    {
+        return ['status' => $status, 'entitled' => $entitled, 'available' => $available, 'message' => $message];
+    }
+
+    public function test_an_unavailable_platform_gets_a_503_page_with_retry_after_and_no_data(): void
+    {
+        $owner = $this->ownerOf();
+        $this->infodotSays(Http::response($this->holding($this->row(false, true, 'Back at 18:00 for maintenance.', 'included'))));
+
+        $this->actingAs($owner)->get('/files')
+            ->assertStatus(503)
+            ->assertHeader('Retry-After', '60')
+            ->assertSee('Dot.Files is not available right now')
+            ->assertSee('Back at 18:00 for maintenance.')
+            ->assertSee('kept as they are')
+            ->assertDontSee('Budget 2027.txt');
+
+        $file = File::withoutGlobalScopes()->where('name', 'Budget 2027.txt')->firstOrFail();
+        $this->actingAs($owner)->get('/files/'.$file->id)->assertStatus(503);
+        $this->actingAs($owner)->get('/trash')->assertStatus(503);
+
+        $this->assertSame(1, File::withoutGlobalScopes()->count(), 'the data is untouched');
+        $this->assertTrue(Storage::disk('local')->exists($file->path));
+    }
+
+    public function test_an_unavailable_platform_answers_json_and_livewire_with_a_503_reason(): void
+    {
+        $owner = $this->ownerOf();
+        $this->infodotSays(Http::response($this->holding($this->row(false))));
+
+        $this->actingAs($owner)->getJson('/files')
+            ->assertStatus(503)->assertHeader('Retry-After', '60')
+            ->assertExactJson(['message' => 'Dot.Files is temporarily unavailable.', 'reason' => 'platform_unavailable']);
+
+        $this->actingAs($owner)->post('/livewire/update', [])
+            ->assertStatus(503)->assertHeader('Retry-After', '60')->assertJson(['reason' => 'platform_unavailable']);
+
+        $this->actingAs($owner)->post('/livewire/update', [], ['X-Livewire' => 'true'])->assertStatus(503)->assertJson(['reason' => 'platform_unavailable']);
+    }
+
+    public function test_unavailable_wins_over_a_refusal(): void
+    {
+        $owner = $this->ownerOf();
+        $this->infodotSays(Http::response($this->holding($this->row(false, false, null, 'suspended'))));
+
+        $this->actingAs($owner)->get('/files')->assertStatus(503)->assertSee('not available right now')->assertDontSee('is suspended for');
+    }
+
+    public function test_an_answer_without_available_is_not_a_switch_off(): void
+    {
+        $owner = $this->ownerOf();
+        $this->infodotSays(Http::response($this->holding(['status' => 'included', 'entitled' => true])));
+
+        $this->actingAs($owner)->get('/files')->assertOk();
+    }
+
+    public function test_the_last_clear_answer_is_used_when_infodot_cannot_be_reached(): void
+    {
+        $owner = $this->ownerOf();
+        $this->infodotSays(Http::response($this->holding($this->row(false, true, 'Maintenance.'))));
+        $this->actingAs($owner)->get('/files')->assertStatus(503);
+
+        // A kept "unavailable" stays unavailable through an outage, past the 60 second window.
+        $this->infodotSays(Http::response('', 500));
+        Carbon::setTestNow(now()->addSeconds(EntitlementCheck::KNOWN_FOR + 5));
+        $this->actingAs($owner)->get('/files')->assertStatus(503)->assertSee('Maintenance.');
+
+        // A kept refusal stays a refusal (another company).
+        $other = $this->ownerOf(self::GLOBEX, 'Globex');
+        $this->infodotSays(Http::response($this->holding($this->row(true, false, null, 'suspended'), self::GLOBEX)));
+        $this->actingAs($other)->get('/files')->assertStatus(403);
+        $this->infodotSays(Http::response('', 503));
+        Carbon::setTestNow(now()->addSeconds(EntitlementCheck::KNOWN_FOR + 5));
+        $this->actingAs($other)->get('/files')->assertStatus(403)->assertSee('suspended for Globex');
+
+        // A kept "available and held" carries on.
+        $third = $this->ownerOf('33333333-3333-4333-8333-333333333333', 'Initech');
+        $this->infodotSays(Http::response($this->holding($this->row(true), '33333333-3333-4333-8333-333333333333')));
+        $this->actingAs($third)->get('/files')->assertOk();
+        $this->infodotSays(Http::response('not json', 200));
+        Carbon::setTestNow(now()->addSeconds(EntitlementCheck::KNOWN_FOR + 5));
+        $this->actingAs($third)->get('/files')->assertOk();
+
+        // A clear answer replaces the remembered one as soon as InfoDot is back.
+        $this->infodotSays(Http::response($this->holding($this->row(true))));
+        Carbon::setTestNow(now()->addSeconds(EntitlementCheck::KNOWN_FOR + 5));
+        $this->actingAs($owner)->get('/files')->assertOk();
+
+        Carbon::setTestNow();
+    }
+
+    public function test_the_last_clear_answer_expires_after_six_hours(): void
+    {
+        $owner = $this->ownerOf();
+        $this->infodotSays(Http::response($this->holding($this->row(false))));
+        $this->actingAs($owner)->get('/files')->assertStatus(503);
+
+        $this->infodotSays(Http::response('', 500));
+        Carbon::setTestNow(now()->addSeconds(EntitlementCheck::LAST_KNOWN_FOR - 60));
+        $this->actingAs($owner)->get('/files')->assertStatus(503);
+
+        Carbon::setTestNow(now()->addSeconds(120));
+        $this->actingAs($owner)->get('/files')->assertOk();
+
+        Carbon::setTestNow();
+    }
+
+    public function test_with_no_answer_ever_stored_an_outage_fails_open(): void
+    {
+        $owner = $this->ownerOf();
+        $this->infodotSays(Http::response('', 500));
+
+        $this->actingAs($owner)->get('/files')->assertOk()->assertSee('Budget 2027.txt');
+    }
+
+    public function test_an_unavailable_answer_is_kept_for_sixty_seconds_then_asked_again(): void
+    {
+        $owner = $this->ownerOf();
+        $this->infodotSays(Http::response($this->holding($this->row(false))));
+
+        $this->actingAs($owner)->get('/files')->assertStatus(503);
+        $this->actingAs($owner)->get('/trash')->assertStatus(503);
+        $this->assertSame(1, $this->companyCalls());
+
+        Carbon::setTestNow(now()->addSeconds(EntitlementCheck::KNOWN_FOR - 5));
+        $this->actingAs($owner)->get('/files')->assertStatus(503);
+        $this->assertSame(1, $this->companyCalls());
+
+        Carbon::setTestNow(now()->addSeconds(10));
+        $this->infodotSays(Http::response($this->holding($this->row(true))));
+        $this->actingAs($owner)->get('/files')->assertOk();
+        $this->assertSame(1, $this->companyCalls());
+
+        Carbon::setTestNow();
+    }
+
+    public function test_a_cache_entry_from_before_the_availability_contract_is_a_miss(): void
+    {
+        $owner = $this->ownerOf();
+        Cache::put('infodot:entitlement:files:'.self::ACME, ['answer' => ['entitled' => true, 'status' => 'included']], 600);
+        Cache::put('infodot:entitlement:files:'.self::ACME.':last', ['answer' => ['entitled' => true, 'status' => 'included'], 'at' => time()], 600);
+        $this->infodotSays(Http::response($this->holding($this->row(false))));
+
+        $this->actingAs($owner)->get('/files')->assertStatus(503);
+        $this->assertSame(1, $this->companyCalls());
+    }
+
+    public function test_availability_is_answered_per_company(): void
+    {
+        $owner = $this->ownerOf();
+        $globex = Team::forceCreate(['user_id' => $owner->id, 'name' => 'Globex', 'personal_team' => false, 'infodot_team_uuid' => self::GLOBEX]);
+        $this->parkSwitcher(self::GLOBEX);
+
+        Http::swap(new Factory);
+        Http::fake([
+            'https://infodot.test/api/ecosystem/companies/'.self::ACME.'/*' => Http::response($this->holding($this->row(false))),
+            'https://infodot.test/api/ecosystem/companies/'.self::GLOBEX.'/*' => Http::response($this->holding($this->row(true), self::GLOBEX)),
+        ]);
+
+        $this->actingAs($owner)->get('/files')->assertStatus(503);
+
+        // Switching company stays reachable while unavailable, and the other company is answered on its own.
+        $this->actingAs($owner)->put(route('current-team.update'), ['team_id' => $globex->id])->assertRedirect('/files');
+        $this->actingAs($owner->fresh())->get('/files')->assertOk();
+    }
+
+    public function test_a_personal_workspace_is_never_asked_about_availability(): void
+    {
+        $owner = User::factory()->withPersonalTeam()->create();
+        $this->infodotSays(Http::response($this->holding($this->row(false))));
+
+        $this->actingAs($owner)->get('/files')->assertOk();
+        $this->assertSame(0, $this->companyCalls());
+    }
+
+    public function test_sign_out_the_handoff_the_health_check_and_public_pages_stay_reachable_while_unavailable(): void
+    {
+        $owner = $this->ownerOf();
+        $this->infodotSays(Http::response($this->holding($this->row(false))));
+
+        $this->actingAs($owner)->get('/files')->assertStatus(503)->assertSee(route('logout'), false);
+
+        $this->get('/up')->assertOk();
+        $this->get('/')->assertOk();
+        $this->get('/cookies')->assertOk();
+        $this->get('/auth/ecosystem')->assertRedirect();
+        $this->actingAs($owner)->post(route('logout'))->assertRedirect();
+        $this->assertGuest();
+    }
+
+    public function test_the_machine_api_and_shared_downloads_keep_working_while_unavailable(): void
+    {
+        $sharer = $this->ownerOf();
+        $file = File::withoutGlobalScopes()->firstOrFail();
+        $recipient = $this->ownerOf(self::GLOBEX, 'Globex');
+        $recipient->forceFill(['email' => 'pat@globex.test', 'email_verified_at' => now()])->save();
+        $share = app(FileShareService::class)->share($sharer, $file, 'pat@globex.test', 30);
+
+        $signing = Str::random(40);
+        config(['ecosystem.platform_secrets' => ['docs' => $signing]]);
+        $this->infodotSays(Http::response($this->holding($this->row(false), self::GLOBEX)));
+
+        $body = json_encode(['team_uuid' => self::ACME, 'name' => 'Invoice INV-204.pdf', 'content_b64' => base64_encode('%PDF-1.4 real bytes')]);
+        $timestamp = time();
+        $this->call('POST', '/api/platform/files/store', [], [], [], [
+            'HTTP_X-DOT-PLATFORM' => 'docs',
+            'HTTP_X-DOT-TIMESTAMP' => (string) $timestamp,
+            'HTTP_X-DOT-SIGNATURE' => 'sha256='.hash_hmac('sha256', $timestamp.'.'.$body, $signing),
+            'CONTENT_TYPE' => 'application/json',
+        ], $body)->assertCreated();
+
+        // Shared-with-me stays reachable (it belongs to the person, by verified email), and a signed API refusal is its own.
+        $this->actingAs($recipient)->get(route('shared'))->assertOk();
+        $this->actingAs($recipient)->get(route('shared.download', $share))->assertOk()->assertDownload('Budget 2027.txt');
+        $this->postJson('/api/ecosystem/membership', [])->assertUnauthorized();
+        $this->postJson('/api/ecosystem/search', [])->assertUnauthorized();
+
+        $this->assertSame(0, $this->companyCalls());
+
+        // The company workspace itself is closed with a 503.
+        $this->actingAs($recipient)->get('/files')->assertStatus(503);
+    }
+
+    public function test_the_url_and_timeout_can_be_set_by_config(): void
+    {
+        config(['ecosystem.entitlement_url' => 'https://infodot.test/custom/{uuid}/platforms', 'ecosystem.entitlement_timeout' => 2]);
+        $owner = $this->ownerOf();
+        Http::swap(new Factory);
+        Http::fake(['https://infodot.test/custom/*' => Http::response($this->holding($this->row(true)))]);
+
+        $this->actingAs($owner)->get('/files')->assertOk();
+
+        Http::assertSent(fn (Request $request) => str_starts_with($request->url(), 'https://infodot.test/custom/'.self::ACME.'/platforms'));
     }
 }

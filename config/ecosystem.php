@@ -133,12 +133,19 @@ return [
     |--------------------------------------------------------------------------
     | InfoDot decides which companies hold which platform. While someone is
     | signed in, this app asks InfoDot whether their current company still
-    | holds Dot.Files (cached 10 minutes per company, 60 seconds after a
-    | failure) and shows a plain refusal page when it does not. Any failure to
-    | get an answer lets the person carry on: an outage at InfoDot never locks
-    | a company out. Set false to stop asking altogether.
+    | holds Dot.Files (cached 60 seconds per company, and the last clear answer
+    | kept 6 hours) and shows a plain refusal page when it does not, or a 503
+    | page when InfoDot has Dot.Files switched off (R-61 availability). When
+    | InfoDot cannot be reached the last clear answer is used; with none ever
+    | stored the person carries on: an outage at InfoDot never locks out a
+    | company that was last told it could work. Set false to stop asking.
+    |
+    | FILES_ENTITLEMENT_URL overrides where it asks ({uuid} is replaced by the
+    | company's uuid); FILES_ENTITLEMENT_TIMEOUT is the wait in seconds.
     */
 
     'entitlement_check' => (bool) env('FILES_ENTITLEMENT_CHECK', true),
+    'entitlement_url' => env('FILES_ENTITLEMENT_URL'),
+    'entitlement_timeout' => env('FILES_ENTITLEMENT_TIMEOUT'),
 
 ];

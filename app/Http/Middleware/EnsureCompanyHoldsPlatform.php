@@ -24,7 +24,8 @@ use Symfony\Component\HttpFoundation\Response;
  * A personal workspace, or any team with no InfoDot company behind it, is never asked about. It follows
  * what InfoDot said about the personal workspace at sign-in (kept in the session): refused only when that
  * was exactly false, carried on when true or when nothing was remembered. No answer from InfoDot about a
- * company also carries on.
+ * company carries on unless a last clear answer is remembered (6 hours): then that answer, a refusal or an
+ * "unavailable" included, still applies. An "unavailable" answer is a 503 page that wins over a refusal.
  */
 class EnsureCompanyHoldsPlatform
 {
@@ -67,6 +68,12 @@ class EnsureCompanyHoldsPlatform
         }
 
         $answer = $this->check->for((string) $team->infodot_team_uuid);
+
+        // R-61: a platform InfoDot has switched off (maintenance, unavailable) is off for everyone, whatever they hold, and this is a
+        // different question from what the company holds, so it is checked first. Nothing is deleted or changed.
+        if ($answer !== null && $answer['available'] === false) {
+            return EntitlementRefusal::unavailable($request, $answer['message']);
+        }
 
         if ($answer === null || $answer['entitled'] === true) {
             return $next($request);
