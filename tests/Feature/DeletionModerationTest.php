@@ -24,7 +24,9 @@ class DeletionModerationTest extends TestCase
 
     private function makeFileObject(Team $team, string $name = 'widget.txt'): Obj
     {
-        $object = $team->objects()->make(['parent_id' => null]);
+        // Filed under the company's root folder, as every real record is (the root itself is never a deletion target).
+        $root = $team->objects()->withoutGlobalScope('team')->whereNull('parent_id')->first();
+        $object = $team->objects()->make(['parent_id' => $root?->id]);
         $object->objectable()->associate($team->files()->create([
             'name' => $name,
             'size' => 10,
@@ -128,9 +130,9 @@ class DeletionModerationTest extends TestCase
             ->assertRedirect();
 
         // The operator has no team, so the team scope (correctly) hides everything from
-        // them; look at the rows without it.
-        $this->assertNull(Obj::withoutGlobalScope('team')->find($toDelete->id));
-        $this->assertNotNull(Obj::withoutGlobalScope('team')->find($toKeep->id));
+        // them; look at the rows without it. EA-2: approval moves the listed items to the trash (30-day hold).
+        $this->assertNotNull(Obj::withoutGlobalScope('team')->find($toDelete->id)->trashed_at);
+        $this->assertNull(Obj::withoutGlobalScope('team')->find($toKeep->id)->trashed_at);
         $this->assertSame('approved', $request->fresh()->status);
     }
 
@@ -151,7 +153,7 @@ class DeletionModerationTest extends TestCase
             ->post(route('operator.deletion-requests.bulk.approve', $request))
             ->assertRedirect();
 
-        $this->assertNull(Obj::withoutGlobalScope('team')->find($stillThere->id));
+        $this->assertNotNull(Obj::withoutGlobalScope('team')->find($stillThere->id)->trashed_at);
         $this->assertSame('approved', $request->fresh()->status);
     }
 

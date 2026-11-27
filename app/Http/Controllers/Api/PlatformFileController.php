@@ -71,17 +71,29 @@ class PlatformFileController extends Controller
 
         Storage::disk('local')->put($path = 'files/'.Str::random(40), $binary);
 
-        $file = $team->files()->create([
-            'name' => $name,
-            'size' => strlen($binary),
-            'mime' => $mime,
-            'path' => $path,
-        ]);
-        $file->forceFill(['origin_platform' => $platform])->saveQuietly();
+        // EA-2: the file row, its folder and its place in the tree are written together; if any of it fails, the
+        // stored content is removed again, so nothing is left that no row points at (or a row with no place in the tree).
+        try {
+            $file = DB::transaction(function () use ($team, $platform, $name, $binary, $mime, $path, $input) {
+                $file = $team->files()->create([
+                    'name' => $name,
+                    'size' => strlen($binary),
+                    'mime' => $mime,
+                    'path' => $path,
+                ]);
+                $file->forceFill(['origin_platform' => $platform])->saveQuietly();
 
-        $obj = $team->objects()->make(['parent_id' => $this->platformFolder($team, $platform, $input['folder'] ?? null)->id]);
-        $obj->objectable()->associate($file);
-        $obj->save();
+                $obj = $team->objects()->make(['parent_id' => $this->platformFolder($team, $platform, $input['folder'] ?? null)->id]);
+                $obj->objectable()->associate($file);
+                $obj->save();
+
+                return $file;
+            });
+        } catch (\Throwable $e) {
+            Storage::disk('local')->delete($path);
+
+            throw $e;
+        }
 
         $this->record($platform, $team, (string) $file->uuid, 'stored');
 
@@ -202,11 +214,12 @@ class PlatformFileController extends Controller
             ->where('team_id', $team->id)
             ->where('origin_platform', $platform)
             ->where('id', '>', (int) ($input['after_id'] ?? 0))
+            // EA-2: trashed files are left out in the query itself, so a page is never emptied by them and the cursor
+            // always moves past what was returned (an empty page still means the end, as before).
+            ->whereDoesntHave('obj', fn ($q) => $q->withoutGlobalScope('team')->whereNotNull('trashed_at'))
             ->orderBy('id')
             ->limit(100)
-            ->get()
-            ->filter(fn (File $f) => ! $f->isTrashed())
-            ->values();
+            ->get();
 
         return response()->json([
             'files' => $files->map(fn (File $f) => $this->shape($f))->all(),

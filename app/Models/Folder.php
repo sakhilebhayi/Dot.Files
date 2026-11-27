@@ -18,5 +18,12 @@ class Folder extends Model
         static::creating(function ($model) {
             $model->uuid = Str::uuid();
         });
+
+        // EA-2: a renamed folder changes the path of everything inside it, so search follows.
+        static::updated(function (Folder $model) {
+            if ($model->wasChanged('name')) {
+                Obj::withoutGlobalScopes()->where('objectable_type', 'folder')->where('objectable_id', $model->id)->first()?->refreshSearchText();
+            }
+        });
     }
 }

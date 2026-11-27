@@ -9,6 +9,7 @@ use App\Services\FileVersions;
 use App\Services\InfoDot\ResourceRegistry;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -36,7 +37,10 @@ class File extends Model
 
     public function isTrashed(): bool
     {
-        return $this->obj()->withoutGlobalScope('team')->whereNotNull('trashed_at')->exists();
+        $obj = $this->obj()->withoutGlobalScope('team')->first();
+
+        // EA-2: a file inside a trashed folder is in the trash too, for shares, downloads and search alike.
+        return $obj !== null && $obj->ancestorsAndSelf()->withoutGlobalScope('team')->whereNotNull('trashed_at')->exists();
     }
 
     /** The Dot platform that filed this document, by display name — null when a person did. */
@@ -144,16 +148,24 @@ class File extends Model
             })->afterResponse();
         });
 
-        static::deleting(function ($model) {
-            Storage::disk('local')->delete($model->path);
-            app(FilePreviewService::class)->delete($model);
+        // EA-2: a rename changes what search finds, for the file itself.
+        static::updated(function (File $model) {
+            if ($model->wasChanged('name')) {
+                Obj::withoutGlobalScopes()->where('objectable_type', 'file')->where('objectable_id', $model->id)->first()?->refreshSearchText();
+            }
+        });
 
-            // History leaves only with the file itself: every version blob and row goes too.
-            FileVersion::where('file_id', $model->id)->get()->each(function ($version) use ($model) {
-                if ($version->path !== $model->path) {
-                    Storage::disk('local')->delete($version->path);
-                }
-                $version->delete();
+        static::deleting(function ($model) {
+            // History leaves only with the file itself: every version row goes too. The blobs (content, versions,
+            // snapshot) are removed only once the deletion has committed (EA-2): a deletion that fails part-way
+            // never leaves rows pointing at content that is already gone.
+            $blobs = FileVersion::where('file_id', $model->id)->pluck('path')->push($model->path)->filter()->unique()->values()->all();
+            $preview = $model->preview_path;
+            FileVersion::where('file_id', $model->id)->delete();
+            FilePin::where('file_id', $model->id)->delete();
+
+            DB::afterCommit(function () use ($blobs, $preview) {
+                Storage::disk('local')->delete($preview !== null ? [...$blobs, $preview] : $blobs);
             });
 
             // Anyone it was shared with loses access now, and the audit trail says why.

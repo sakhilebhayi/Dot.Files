@@ -14,6 +14,8 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\FileShareService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -63,15 +65,40 @@ class FileBrowser extends Component
             'newFolderState.name' => 'required|max:255',
         ]);
 
-        $object = $team->objects()->make(['parent_id' => $this->object->id]);
-        $object->objectable()->associate($team->folders()->create($this->newFolderState));
-        $object->save();
+        $parent = $this->liveFolder($team);
+
+        // EA-2: the folder row and its place in the tree are written together or not at all. Only the name is taken
+        // from the browser-held state.
+        DB::transaction(function () use ($team, $parent) {
+            $object = $team->objects()->make(['parent_id' => $parent->id]);
+            $object->objectable()->associate($team->folders()->create(['name' => (string) $this->newFolderState['name']]));
+            $object->save();
+        });
 
         $this->creatingNewFolder = false;
 
         $this->newFolderState = ['name' => ''];
 
         $this->object = $this->object->fresh();
+    }
+
+    /**
+     * The folder being filed into, re-read from the database (EA-2): it must be this company's, a folder, and neither
+     * in the trash nor inside a folder that is. A colleague may have trashed it since the page loaded.
+     */
+    private function liveFolder(Team $team): Obj
+    {
+        $folder = Obj::where('id', $this->object->id)
+            ->where('team_id', $team->id)
+            ->where('objectable_type', 'folder')
+            ->whereNull('trashed_at')
+            ->first();
+
+        if ($folder === null || $folder->ancestors()->whereNotNull('trashed_at')->exists()) {
+            throw ValidationException::withMessages(['upload' => __('This folder is no longer available. It may have been moved to the trash.')]);
+        }
+
+        return $folder;
     }
 
     public function getCurrentTeamProperty()
@@ -132,7 +159,9 @@ class FileBrowser extends Component
      */
     public function getIsFirstRunProperty(): bool
     {
+        // EA-2: "New folder" on the first-run screen opens the ordinary workspace, where the folder form lives.
         return empty($this->query)
+            && ! $this->creatingNewFolder
             && $this->object->parent_id === null
             && ! Obj::whereNotNull('parent_id')->exists();
     }
@@ -165,12 +194,15 @@ class FileBrowser extends Component
     public function getResultsProperty()
     {
         if (! empty($this->query)) {
-            $results = Obj::search($this->query)
-                ->query(fn ($q) => $q->where('objects.team_id', $this->resolveCurrentTeam()?->id ?? 0)
-                    ->whereNull('objects.trashed_at'))
-                ->get()
-                ->values()
-                ->load('objectable');
+            // EA-2: one query over this company's own records (path and name), never an index shared by every company.
+            $results = Obj::matching((string) $this->query)
+                ->where('team_id', $this->resolveCurrentTeam()?->id ?? 0)
+                ->whereNull('trashed_at')
+                ->whereNotNull('parent_id')
+                ->orderBy('id')
+                ->limit(500)
+                ->with('objectable')
+                ->get();
         } else {
             $results = $this->object->children()->whereNull('trashed_at')->with('objectable')->get();
         }
@@ -421,19 +453,30 @@ class FileBrowser extends Component
         ]);
 
         $safeName = basename($upload->getClientOriginalName());
+        $parent = $this->liveFolder($team);
+        $path = $upload->store('files', ['disk' => 'local']);
 
-        $object = $team->objects()->make(['parent_id' => $this->object->id]);
-        $object->objectable()->associate(
-            $team->files()->create([
-                'name' => $safeName,
-                'size' => $upload->getSize(),
-                'mime' => $upload->getMimeType(),
-                'uploaded_by' => auth()->id(),
-                'path' => $upload->store('files', ['disk' => 'local']),
-            ])
-        );
+        // EA-2: the file row and its place in the tree are written together; if that fails, the stored content goes.
+        try {
+            DB::transaction(function () use ($team, $parent, $upload, $safeName, $path) {
+                $object = $team->objects()->make(['parent_id' => $parent->id]);
+                $object->objectable()->associate(
+                    $team->files()->create([
+                        'name' => $safeName,
+                        'size' => $upload->getSize(),
+                        'mime' => $upload->getMimeType(),
+                        'uploaded_by' => auth()->id(),
+                        'path' => $path,
+                    ])
+                );
+                $object->save();
+            });
+        } catch (\Throwable $e) {
+            Storage::disk('local')->delete($path);
 
-        $object->save();
+            throw $e;
+        }
+
         $this->object = $this->object->fresh();
     }
 

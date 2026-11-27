@@ -48,13 +48,15 @@ class FileSearch extends Component
             return collect();
         }
 
-        return Obj::search($q)
-            ->query(fn ($query) => $query->where('objects.team_id', auth()->user()?->currentTeam?->id ?? 0)
-                ->whereNull('objects.trashed_at'))
-            ->take(8)
+        // EA-2: this company's own records only, in one query (path and name), never an index shared by every company.
+        return Obj::matching($q)
+            ->where('team_id', auth()->user()?->currentTeam?->id ?? 0)
+            ->whereNull('trashed_at')
+            ->whereNotNull('parent_id')
+            ->orderByDesc('id')
+            ->limit(8)
+            ->with('objectable')
             ->get()
-            ->values()
-            ->load('objectable')
             ->map(fn (Obj $obj) => [
                 'kind' => $obj->objectable_type === 'folder' ? 'folder' : $obj->objectable->kind(),
                 'label' => (string) $obj->objectable->name,

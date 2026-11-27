@@ -37,6 +37,8 @@ class SharedFileController extends Controller
         // whatever the page shows or the link claims.
         abort_unless($share->canDownload(), 403, 'This file is shared with you to view only.');
 
+        abort_unless(Storage::disk('local')->exists($file->path), 410, 'This file\'s content is no longer on disk.');
+
         $service->opened($user, $share, 'downloaded');
 
         return Storage::disk('local')->download($file->path, $file->name);

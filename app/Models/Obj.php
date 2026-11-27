@@ -4,18 +4,16 @@ namespace App\Models;
 
 use App\Models\Concerns\HasTeamScope;
 use App\Services\FileGovernance;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
-use Laravel\Scout\Searchable;
 use Staudenmeir\LaravelAdjacencyList\Eloquent\HasRecursiveRelationships;
 
 class Obj extends Model
 {
-    use HasFactory, HasRecursiveRelationships, HasTeamScope, Searchable;
-
-    public $asYouType = true;
+    use HasFactory, HasRecursiveRelationships, HasTeamScope;
 
     public $table = 'objects';
 
@@ -34,7 +32,6 @@ class Obj extends Model
     public function trash(?int $byUserId): void
     {
         $this->forceFill(['trashed_at' => now(), 'trashed_by' => $byUserId])->save();
-        $this->unsearchable();
 
         // A person trashing a file right after its content changed is the pattern governance
         // reviews (R-28 §29). Platforms (null user) have their own audit trail.
@@ -47,7 +44,6 @@ class Obj extends Model
     public function restore(): void
     {
         $this->forceFill(['trashed_at' => null, 'trashed_by' => null])->save();
-        $this->searchable();
     }
 
     public function isTrashed(): bool
@@ -55,15 +51,17 @@ class Obj extends Model
         return $this->trashed_at !== null;
     }
 
-    public function shouldBeSearchable(): bool
-    {
-        return $this->trashed_at === null;
-    }
-
     public static function booted()
     {
         static::creating(function ($model) {
             $model->uuid = Str::uuid();
+        });
+
+        // EA-2: the searchable text (folder path and name) is kept on the row, so search stays inside one company.
+        static::saving(function (Obj $model) {
+            if (! $model->exists || $model->isDirty('parent_id') || $model->search_text === null) {
+                $model->search_text = $model->computeSearchText();
+            }
         });
 
         // Deleting an object removes what hangs off it. These rows belong to the same
@@ -81,14 +79,34 @@ class Obj extends Model
         });
     }
 
-    public function toSearchableArray()
+    /** Folder path and name, lower case: "root / contracts / lease 2027.pdf". */
+    public function computeSearchText(): string
     {
-        return [
-            'id' => $this->id,
-            'team_id' => $this->team_id,
-            'name' => $this->objectable->name,
-            'path' => $this->ancestorsAndSelf->pluck('objectable.name')->reverse()->join('/'),
-        ];
+        $parent = $this->parent_id !== null ? static::withoutGlobalScopes()->find($this->parent_id) : null;
+        $name = mb_strtolower((string) $this->objectable()->withoutGlobalScopes()->first()?->name);
+
+        return ltrim(($parent?->search_text ?? '').' / '.$name, ' /');
+    }
+
+    /** After a rename or a move: this record's text and every record below it. */
+    public function refreshSearchText(): void
+    {
+        $this->forceFill(['search_text' => $this->computeSearchText()])->saveQuietly();
+
+        static::withoutGlobalScopes()->where('parent_id', $this->id)->get()->each->refreshSearchText();
+    }
+
+    /**
+     * Records whose path or name holds every word typed (case-insensitive, wildcards escaped). The team scope still
+     * applies, so this never reaches another company.
+     */
+    public function scopeMatching(Builder $query, string $terms): Builder
+    {
+        foreach (preg_split('/\s+/', mb_strtolower(trim($terms)), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
+            $query->whereRaw("search_text LIKE ? ESCAPE '!'", ['%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $word).'%']);
+        }
+
+        return $query;
     }
 
     public function objectable()
