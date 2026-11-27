@@ -62,7 +62,12 @@
         <!-- Email -->
         <div class="col-span-6 sm:col-span-4">
             <x-jet-label for="email" value="{{ __('Email') }}" />
-            <x-jet-input id="email" type="email" class="mt-1 block w-full" wire:model.defer="state.email" />
+            @if (Auth::user()->emailManagedByInfoDot())
+                <x-jet-input id="email" type="email" class="mt-1 block w-full" wire:model.defer="state.email" readonly aria-describedby="email-managed" />
+                <p id="email-managed" class="mt-2 text-sm text-gray-600">{{ __('Your email address is managed by InfoDot. Change it there.') }}</p>
+            @else
+                <x-jet-input id="email" type="email" class="mt-1 block w-full" wire:model.defer="state.email" />
+            @endif
             <x-jet-input-error for="email" class="mt-2" />
         </div>
     </x-slot>
