@@ -6,6 +6,7 @@ use App\Models\File;
 use App\Models\FileShare;
 use App\Services\FileShareService;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
@@ -14,6 +15,8 @@ use Livewire\Component;
  */
 class FileShares extends Component
 {
+    /** Set on mount from an authorised file; the browser cannot change it (EA-1). */
+    #[Locked]
     public int $fileId;
 
     public string $email = '';
@@ -31,9 +34,14 @@ class FileShares extends Component
         $this->fileId = $file->id;
     }
 
+    /** The panel's file, re-authorised on every request: the person's role or current company may have changed. */
     private function file(): File
     {
-        return File::findOrFail($this->fileId);
+        $file = File::findOrFail($this->fileId);
+
+        abort_unless(app(FileShareService::class)->canShare(auth()->user(), $file), 403);
+
+        return $file;
     }
 
     public function share(FileShareService $service): void
@@ -52,7 +60,7 @@ class FileShares extends Component
 
     public function revoke(int $shareId, FileShareService $service): void
     {
-        $share = FileShare::where('file_id', $this->fileId)->findOrFail($shareId);
+        $share = FileShare::where('file_id', $this->file()->id)->findOrFail($shareId);
 
         $service->revoke(auth()->user(), $share);
 

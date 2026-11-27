@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\Ecosystem\ApplyMembershipChange;
 use App\Http\Controllers\Controller;
+use App\Services\Ecosystem\ReplayGuard;
 use App\Services\InfoDot\SignedRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,6 +36,12 @@ class EcosystemMembershipController extends Controller
 
         if ($change->fails()) {
             return response()->json(['error' => 'invalid_request'], 422);
+        }
+
+        // EA-1: each signed change is applied once. The same signed request arriving again (a replay, or a delivery
+        // retried with the same signature) is acknowledged without being applied a second time.
+        if (! ReplayGuard::firstUse('infodot-membership', (string) $request->header('X-InfoDot-Signature'))) {
+            return response()->json(['ok' => true, 'duplicate' => true], 202);
         }
 
         $apply($change->validated());

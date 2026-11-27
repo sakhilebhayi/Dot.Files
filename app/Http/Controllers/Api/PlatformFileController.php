@@ -8,6 +8,7 @@ use App\Models\File;
 use App\Models\Obj;
 use App\Models\Team;
 use App\Services\Ecosystem\PlatformRequest;
+use App\Services\Ecosystem\ReplayGuard;
 use App\Services\FileVersions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,7 +37,7 @@ class PlatformFileController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        [$platform, $team, $input, $error] = $this->open($request, [
+        [$platform, $team, $input, $error] = $this->open($request, write: true, rules: [
             'name' => ['required', 'string', 'max:255'],
             'content_b64' => ['required', 'string', 'max:'.(int) ceil(self::MAX_BYTES * 1.4)],
             'mime' => ['nullable', 'string', 'max:191'],
@@ -94,7 +95,7 @@ class PlatformFileController extends Controller
      */
     public function update(Request $request, FileVersions $versions): JsonResponse
     {
-        [$platform, $team, $input, $error] = $this->open($request, [
+        [$platform, $team, $input, $error] = $this->open($request, write: true, rules: [
             'uuid' => ['required', 'uuid'],
             'content_b64' => ['required', 'string', 'max:'.(int) ceil(self::MAX_BYTES * 1.4)],
             'name' => ['nullable', 'string', 'max:255'],
@@ -215,7 +216,7 @@ class PlatformFileController extends Controller
 
     public function trash(Request $request): JsonResponse
     {
-        [$platform, $team, $input, $error] = $this->open($request, ['uuid' => ['required', 'uuid']]);
+        [$platform, $team, $input, $error] = $this->open($request, write: true, rules: ['uuid' => ['required', 'uuid']]);
 
         if ($error) {
             return $error;
@@ -241,12 +242,18 @@ class PlatformFileController extends Controller
      *
      * @return array{0: string, 1: ?Team, 2: array, 3: ?JsonResponse}
      */
-    private function open(Request $request, array $rules): array
+    private function open(Request $request, array $rules, bool $write = false): array
     {
         $platform = PlatformRequest::platform($request);
 
         if ($platform === null) {
             return ['', null, [], response()->json(['error' => 'invalid_request'], 401)];
+        }
+
+        // EA-1: a write (store, update, trash) is honoured once per signature. A genuine retry signs again with a new
+        // timestamp; the same signed write arriving twice is a replay or a duplicate and changes nothing.
+        if ($write && ! ReplayGuard::firstUse('platform:'.$platform, (string) $request->header('X-Dot-Signature'))) {
+            return [$platform, null, [], response()->json(['error' => 'duplicate_request'], 409)];
         }
 
         $input = Validator::make((array) json_decode($request->getContent(), true),

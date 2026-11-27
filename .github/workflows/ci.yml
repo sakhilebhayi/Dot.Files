@@ -37,3 +37,12 @@ jobs:
 
       - name: Run the suite
         run: php artisan test --compact
+
+      # EA-1: no release carries a known-vulnerable PHP package. Any advisory fails the run, whatever its severity
+      # label (many arrive unrated); a reviewed exception belongs in composer.json config.audit.ignore with a reason.
+      - name: Composer audit
+        run: composer audit --locked --no-interaction
+
+      # The shipped JavaScript dependencies only (build tooling is not served); high or critical fails the run.
+      - name: npm audit (runtime dependencies)
+        run: npm audit --omit=dev --audit-level=high

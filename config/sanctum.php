@@ -29,7 +29,8 @@ return [
     |
     */
 
-    'expiration' => null,
+    // EA-1: personal access tokens expire after 30 days (minutes); first-party session use is unaffected.
+    'expiration' => (int) env('SANCTUM_EXPIRATION', 43200),
 
     /*
     |--------------------------------------------------------------------------

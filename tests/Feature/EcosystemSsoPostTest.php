@@ -92,6 +92,16 @@ class EcosystemSsoPostTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_a_same_site_post_that_names_no_origin_is_refused_even_with_a_valid_token(): void
+    {
+        // EA-1: Sec-Fetch-Site "same-site" alone would admit any sibling subdomain, so it is not enough.
+        $user = User::factory()->withPersonalTeam()->create();
+
+        $this->post('/auth/ecosystem', ['token' => $this->token($user)], ['Sec-Fetch-Site' => 'same-site'])->assertRedirect('/login');
+
+        $this->assertGuest();
+    }
+
     public function test_a_bad_or_expired_token_lands_on_the_plain_login_page_with_nothing_echoed(): void
     {
         $user = User::factory()->create();
