@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\CentralSignIn;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -59,4 +61,24 @@ class User extends Authenticatable
     protected $appends = [
         'profile_photo_url',
     ];
+
+    /**
+     * Addresses are stored trimmed and in lower case: share recipients, InfoDot identities and the unique index all
+     * compare them that way (EA-0).
+     */
+    protected function email(): Attribute
+    {
+        return Attribute::make(set: fn (?string $value): ?string => $value === null ? null : mb_strtolower(trim($value)));
+    }
+
+    /**
+     * Whether InfoDot owns this account's address, so it cannot be changed here: central sign-in (or the SSO-only
+     * ecosystem mode) is on, or the account is linked to an InfoDot identity.
+     */
+    public function emailManagedByInfoDot(): bool
+    {
+        return CentralSignIn::active()
+            || (bool) config('ecosystem.sso_only')
+            || filled($this->infodot_user_uuid);
+    }
 }

@@ -151,9 +151,9 @@ class FileSharingTest extends TestCase
         $this->actingAs($other)->get('/o/'.$this->file->uuid)->assertForbidden()->assertDontSee('Budget');
         $this->actingAs($other)->get(route('shared.download', $share))->assertNotFound();
 
-        $unverified = User::factory()->withPersonalTeam()->create(['email' => 'pat@rival.test2', 'email_verified_at' => null]);
-        $unverified->forceFill(['email' => 'pat@rival.test'])->saveQuietly();
-        $this->assertNull($this->service->activeShareFor($unverified, $this->file), 'an unverified address never matches a share');
+        // Addresses are unique case-insensitively (EA-0), so the recipient's own account stands in: unverified, it matches nothing.
+        $this->outsider->forceFill(['email_verified_at' => null])->saveQuietly();
+        $this->assertNull($this->service->activeShareFor($this->outsider, $this->file), 'an unverified address never matches a share');
 
         auth()->logout();
         $this->get('/o/'.$this->file->uuid)->assertRedirect('/login');
