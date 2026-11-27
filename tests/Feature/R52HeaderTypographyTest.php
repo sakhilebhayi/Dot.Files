@@ -230,7 +230,7 @@ class R52HeaderTypographyTest extends TestCase
     {
         $this->assertStringContainsString('dot-ui/tailwind/tailwind-preset.cjs', (string) file_get_contents(base_path('tailwind.config.js')));
 
-        $policy = (string) $this->get('/login')->headers->get('Content-Security-Policy-Report-Only');
+        $policy = (string) $this->get('/login')->headers->get('Content-Security-Policy');
         foreach (['unpkg.com', 'fonts.googleapis.com', 'fonts.gstatic.com', 'bootstrapcdn'] as $host) {
             $this->assertStringNotContainsString($host, $policy);
         }

@@ -81,7 +81,7 @@ class FilePreviewService
 
     public function canRenderPdf(): bool
     {
-        if (! class_exists(\Imagick::class)) {
+        if (! config('security.pdf_previews', true) || ! class_exists(\Imagick::class)) {
             return false;
         }
 
@@ -133,7 +133,13 @@ class FilePreviewService
 
     private function fromPdf(string $path): ?string
     {
+        $limits = (array) config('security.pdf_limits', []);
         $imagick = new \Imagick;
+        // EA-1: one render of an uploaded PDF is bounded in memory, disk and time.
+        $imagick->setResourceLimit(\Imagick::RESOURCETYPE_MEMORY, max(64, (int) ($limits['memory_mb'] ?? 256)) * 1024 * 1024);
+        $imagick->setResourceLimit(\Imagick::RESOURCETYPE_MAP, max(64, (int) ($limits['memory_mb'] ?? 256)) * 1024 * 1024);
+        $imagick->setResourceLimit(\Imagick::RESOURCETYPE_DISK, max(64, (int) ($limits['disk_mb'] ?? 512)) * 1024 * 1024);
+        $imagick->setResourceLimit(\Imagick::RESOURCETYPE_TIME, max(5, (int) ($limits['seconds'] ?? 20)));
         $imagick->setResolution(110, 110);
         $imagick->readImage($path.'[0]');
         $imagick->setImageBackgroundColor('#fbfaf7');

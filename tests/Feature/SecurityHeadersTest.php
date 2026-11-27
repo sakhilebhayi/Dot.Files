@@ -20,15 +20,20 @@ class SecurityHeadersTest extends TestCase
         $this->get('/does-not-exist')->assertNotFound()->assertHeader('X-Content-Type-Options', 'nosniff');
     }
 
-    public function test_the_csp_ships_report_only_with_the_report_endpoint(): void
+    public function test_the_csp_is_enforced_with_the_report_endpoint_and_can_return_to_report_only(): void
     {
         $r = $this->get('/login');
 
-        $policy = (string) $r->headers->get('Content-Security-Policy-Report-Only');
+        $policy = (string) $r->headers->get('Content-Security-Policy');
         $this->assertStringContainsString("default-src 'self'", $policy);
         $this->assertStringContainsString('report-uri /csp-report', $policy);
         $this->assertStringContainsString("object-src 'none'", $policy);
-        $this->assertFalse($r->headers->has('Content-Security-Policy'), 'enforcement waits for the log review');
+        $this->assertFalse($r->headers->has('Content-Security-Policy-Report-Only'));
+
+        config(['security.csp_enforce' => false]);
+        $r = $this->get('/login');
+        $this->assertTrue($r->headers->has('Content-Security-Policy-Report-Only'));
+        $this->assertFalse($r->headers->has('Content-Security-Policy'));
     }
 
     public function test_hsts_is_https_only_and_switchable(): void

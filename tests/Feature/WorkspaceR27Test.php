@@ -159,7 +159,7 @@ class WorkspaceR27Test extends TestCase
         $this->actingAs($this->owner)->get('/files/'.$pdf->id.'/inline')
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf')
-            ->assertHeader('Content-Disposition', 'inline; filename="Terms.pdf"');
+            ->assertHeader('Content-Disposition', 'inline; filename=Terms.pdf');
 
         // Active content never renders inline, and other companies never resolve the file.
         $this->actingAs($this->owner)->get('/files/'.$svg->id.'/inline')->assertNotFound();

@@ -60,8 +60,10 @@ class EcosystemAuthController extends Controller
             ? parse_url($origin, PHP_URL_HOST)
             : parse_url((string) $request->headers->get('Referer', ''), PHP_URL_HOST);
 
+        // EA-1: a post that names no origin is refused. Browsers send Origin on every cross-site form post, and
+        // Sec-Fetch-Site "same-site" alone would admit any sibling subdomain.
         if (! is_string($host) || $host === '') {
-            return in_array($request->headers->get('Sec-Fetch-Site'), ['same-origin', 'same-site'], true);
+            return false;
         }
 
         $host = strtolower($host);

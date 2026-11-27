@@ -89,6 +89,8 @@ return [
 
     'limiters' => [
         'login' => null,
+        // EA-1: the two-factor challenge (break-glass local sign-in only) is throttled per pending sign-in.
+        'two-factor' => 'two-factor',
     ],
 
     /*

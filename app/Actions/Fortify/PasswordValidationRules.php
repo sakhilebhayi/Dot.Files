@@ -13,6 +13,7 @@ trait PasswordValidationRules
      */
     protected function passwordRules()
     {
-        return ['required', 'string', new Password, 'confirmed'];
+        // EA-1: break-glass local accounts only (InfoDot owns sign-in); 12 characters minimum.
+        return ['required', 'string', (new Password)->length(12), 'confirmed'];
     }
 }

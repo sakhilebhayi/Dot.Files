@@ -7,10 +7,9 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Baseline browser protections on every response (fleet pattern, R-22/R-25). The hard headers are
- * ENFORCED; the Content-Security-Policy ships REPORT-ONLY first, so real violations are read from
- * the logs before enforcement — this platform serves confidential business files, and a wrongly
- * blocked asset is cheaper than guessing. A header a route already set is left alone.
+ * Baseline browser protections on every response (fleet pattern, R-22/R-25). Every header is enforced,
+ * the Content-Security-Policy included since EA-1 after its report-only period (config security.csp_enforce
+ * can return it to report-only without a deploy). A header a route already set is left alone.
  */
 class SecurityHeaders
 {
@@ -36,7 +35,7 @@ class SecurityHeaders
             ."connect-src 'self'; frame-src 'self'; frame-ancestors 'self'; object-src 'none'; "
             ."base-uri 'self'; report-uri /csp-report";
 
-        $headers['Content-Security-Policy-Report-Only'] = $csp;
+        $headers[config('security.csp_enforce', true) ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only'] = $csp;
 
         $hsts = (int) config('security.hsts_seconds', 15552000);
         if ($request->isSecure() && $hsts > 0) {

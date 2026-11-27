@@ -12,6 +12,8 @@ use App\Services\FileVersions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 
 class FileController extends Controller
 {
@@ -72,12 +74,29 @@ class FileController extends Controller
         abort_unless(in_array($file->mime, $inlineable, true), 404);
         abort_unless(Storage::disk('local')->exists($file->path), 404);
 
-        return response()->file(Storage::disk('local')->path($file->path), [
+        $headers = [
             'Content-Type' => $file->mime,
-            'Content-Disposition' => 'inline; filename="'.addslashes($file->name).'"',
+            // RFC 6266: the real name in filename*, a plain-ASCII fallback in filename (EA-1).
+            'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_INLINE, $file->name, $this->asciiName($file->name)),
             'Cache-Control' => 'private, max-age=300',
             'X-Content-Type-Options' => 'nosniff',
-        ]);
+        ];
+
+        // Images and text open in a sandbox with nothing allowed to run. PDFs are left out: browsers refuse to show
+        // their own PDF viewer inside a sandboxed document.
+        if ($file->mime !== 'application/pdf') {
+            $headers['Content-Security-Policy'] = "sandbox; default-src 'none'; img-src 'self'; style-src 'unsafe-inline'";
+        }
+
+        return response()->file(Storage::disk('local')->path($file->path), $headers);
+    }
+
+    /** A plain-ASCII stand-in for a document name, for clients that cannot read filename*. */
+    private function asciiName(string $name): string
+    {
+        $ascii = trim(str_replace(['"', '\\', '/', '%'], '_', (string) preg_replace('/[^\x20-\x7E]/', '_', Str::ascii($name))));
+
+        return $ascii !== '' ? $ascii : 'document';
     }
 
     /**
