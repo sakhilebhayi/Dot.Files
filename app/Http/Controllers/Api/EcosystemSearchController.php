@@ -50,6 +50,8 @@ class EcosystemSearchController extends Controller
         $results = File::withoutGlobalScopes()
             ->where('team_id', $team->id)
             ->whereNotNull('infodot_resource_uuid')
+            // EA-2: a file in the trash is off the record for search too.
+            ->whereDoesntHave('obj', fn ($q) => $q->withoutGlobalScope('team')->whereNotNull('trashed_at'))
             ->whereRaw("lower(name) like ? escape '!'", [$like])
             ->orderBy('name')
             ->limit(5)

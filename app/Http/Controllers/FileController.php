@@ -42,9 +42,15 @@ class FileController extends Controller
         $uuid = $request->query('uuid')
             ?? Obj::whereNull('parent_id')->value('uuid');
 
-        $object = Obj::with('children.objectable', 'ancestorsAndSelf.objectable')
+        // EA-2: only a live folder opens as the workspace. A file's node or a folder in the trash (or inside one) is
+        // not a place to file things into.
+        $object = Obj::with('ancestorsAndSelf.objectable')
             ->where('uuid', $uuid)
+            ->where('objectable_type', 'folder')
+            ->whereNull('trashed_at')
             ->firstOrFail();
+
+        abort_if($object->ancestors()->whereNotNull('trashed_at')->exists(), 404);
 
         return view('files', [
             'object' => $object,
@@ -55,6 +61,8 @@ class FileController extends Controller
     public function download(File $file)
     {
         $this->authorize('download', $file);
+        // EA-2: content missing from disk is "gone", like an old version's, never a server error.
+        abort_unless(Storage::disk('local')->exists($file->path), 410, 'This file\'s content is no longer on disk.');
 
         return Storage::disk('local')->download($file->path, $file->name);
     }

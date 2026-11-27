@@ -48,7 +48,10 @@ class FileShareService
         $days = max(1, min($days, FileShare::MAX_DAYS));
         $permission = $this->normalisedPermission($permission);
 
-        if (FileShare::where('file_id', $file->id)->active()->count() >= FileShare::MAX_ACTIVE_PER_FILE) {
+        // EA-2: renewing a live share for the same person adds no one, so the cap does not stand in its way.
+        $renewing = FileShare::where('file_id', $file->id)->where('email', $email)->active()->exists();
+
+        if (! $renewing && FileShare::where('file_id', $file->id)->active()->count() >= FileShare::MAX_ACTIVE_PER_FILE) {
             throw ValidationException::withMessages(['email' => 'This file is already shared with the most people allowed. Revoke one first.']);
         }
 
@@ -136,13 +139,17 @@ class FileShareService
             throw ValidationException::withMessages(['share' => 'This file is already shared with the most people allowed. Revoke one first.']);
         }
 
-        // The access window starts at the approval, for the days the requester asked for.
-        $share->update([
+        // The access window starts at the approval, for the days the requester asked for. EA-2: the decision is taken
+        // only if the request is still pending at the moment of writing, so an approve and a decline cannot both win.
+        $decided = FileShare::whereKey($share->id)->where('status', 'pending')->whereNull('revoked_at')->update([
             'status' => 'active',
             'decided_by' => $by->id,
             'decided_at' => now(),
             'expires_at' => now()->addDays($share->requestedDays()),
         ]);
+
+        abort_unless($decided === 1, 404);
+        $share->refresh();
 
         $this->record($file, $share, 'approved', $by->email, $share->email);
 
@@ -157,7 +164,11 @@ class FileShareService
         abort_unless($file !== null && $this->canShare($by, $file), 403);
         abort_unless($share->status === 'pending' && $share->revoked_at === null, 404);
 
-        $share->update(['status' => 'declined', 'decided_by' => $by->id, 'decided_at' => now()]);
+        $decided = FileShare::whereKey($share->id)->where('status', 'pending')->whereNull('revoked_at')
+            ->update(['status' => 'declined', 'decided_by' => $by->id, 'decided_at' => now()]);
+
+        abort_unless($decided === 1, 404);
+        $share->refresh();
 
         $this->record($file, $share, 'declined', $by->email, $share->email, $note ?: null);
 

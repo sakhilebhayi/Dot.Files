@@ -8,6 +8,7 @@ use App\Models\Obj;
 use App\Models\TeamDeletionRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DeletionModerationController extends Controller
@@ -72,19 +73,37 @@ class DeletionModerationController extends Controller
         // global scope would otherwise filter every query by -- silently
         // returning zero rows for any request that isn't the operator's
         // own team.
-        Obj::withoutGlobalScope('team')
-            ->whereIn('id', $bulkDeletionRequest->object_ids)
-            ->where('team_id', $bulkDeletionRequest->team_id)
-            ->get()
-            ->each->delete();
+        //
+        // EA-2: approval moves the items to the company's trash, the same 30-day hold as every other deletion, and the
+        // purge removes them for good. The decision is recorded only if the request is still pending at that moment,
+        // so approving twice (or approving and rejecting at once) cannot both take effect.
+        $approved = DB::transaction(function () use ($bulkDeletionRequest) {
+            $claimed = BulkDeletionRequest::whereKey($bulkDeletionRequest->id)->where('status', 'pending')->update([
+                'status' => 'approved',
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
+            ]);
 
-        $bulkDeletionRequest->update([
-            'status' => 'approved',
-            'reviewed_by' => auth()->id(),
-            'reviewed_at' => now(),
-        ]);
+            if ($claimed !== 1) {
+                return false;
+            }
 
-        return back()->with('status', 'Selected items deleted.');
+            Obj::withoutGlobalScope('team')
+                ->whereIn('id', $bulkDeletionRequest->object_ids)
+                ->where('team_id', $bulkDeletionRequest->team_id)
+                ->whereNotNull('parent_id')
+                ->whereNull('trashed_at')
+                ->get()
+                ->each(fn (Obj $obj) => $obj->trash($bulkDeletionRequest->requested_by));
+
+            return true;
+        });
+
+        if (! $approved) {
+            return back()->withErrors(['status' => 'Only a pending request can be approved.']);
+        }
+
+        return back()->with('status', 'Selected items moved to the company\'s trash. They are deleted for good after '.Obj::TRASH_DAYS.' days.');
     }
 
     public function rejectBulk(BulkDeletionRequest $bulkDeletionRequest, Request $request): RedirectResponse

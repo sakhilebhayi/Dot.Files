@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\VersionConflictException;
 use App\Models\File;
 use App\Models\FileVersion;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -31,6 +32,21 @@ class FileVersions
             return;
         }
 
+        // EA-2: two requests can both find no baseline (the upload's after-response work and a first open); the unique
+        // (file_id, version) index lets exactly one write it, and the other simply finds it written.
+        try {
+            $this->createBaseline($file);
+        } catch (UniqueConstraintViolationException) {
+            return;
+        }
+
+        if ($file->checksum === null) {
+            $file->forceFill(['checksum' => $this->checksum($file->path)])->saveQuietly();
+        }
+    }
+
+    private function createBaseline(File $file): void
+    {
         FileVersion::create([
             'file_id' => $file->id,
             'version' => (int) $file->current_version ?: 1,
@@ -44,10 +60,6 @@ class FileVersions
             'action' => 'uploaded',
             'created_at' => $file->created_at ?? now(),
         ]);
-
-        if ($file->checksum === null) {
-            $file->forceFill(['checksum' => $this->checksum($file->path)])->saveQuietly();
-        }
     }
 
     /**
@@ -61,53 +73,22 @@ class FileVersions
     {
         $this->ensureBaseline($file);
 
-        $version = DB::transaction(function () use ($file, $binary, $mime, $userId, $platform, $action, $newName, $expectedBase) {
-            // The trail itself is the authority on numbering — never an in-memory attribute.
-            $next = ((int) FileVersion::where('file_id', $file->id)->max('version')) + 1;
+        // EA-2: the blob is written first and removed again if the database work does not commit, so a refused or
+        // failed save never leaves content on disk that no row points at.
+        Storage::disk('local')->put($path = 'files/'.Str::random(40), $binary);
 
-            if ($expectedBase !== null && $expectedBase !== $next - 1) {
-                throw new VersionConflictException($next - 1);
-            }
+        try {
+            $version = DB::transaction(fn () => $this->recordVersion($file, $path, $binary, $mime, $userId, $platform, $action, $newName, $expectedBase));
+        } catch (UniqueConstraintViolationException) {
+            // Another save took this version number between our read and our write: report it as the conflict it is.
+            Storage::disk('local')->delete($path);
 
-            Storage::disk('local')->put($path = 'files/'.Str::random(40), $binary);
+            throw new VersionConflictException((int) FileVersion::where('file_id', $file->id)->max('version'));
+        } catch (\Throwable $e) {
+            Storage::disk('local')->delete($path);
 
-            $version = FileVersion::create([
-                'file_id' => $file->id,
-                'version' => $next,
-                'name' => $newName ?? $file->name,
-                'size' => strlen($binary),
-                'mime' => $mime ?? $file->mime,
-                'path' => $path,
-                'checksum' => hash('sha256', $binary),
-                'created_by' => $userId,
-                'origin_platform' => $platform,
-                'action' => $action,
-                'created_at' => now(),
-            ]);
-
-            $file->forceFill([
-                'name' => $newName ?? $file->name,
-                'size' => strlen($binary),
-                'mime' => $mime ?? $file->mime,
-                'path' => $path,
-                'checksum' => $version->checksum,
-                'current_version' => $next,
-                'preview_status' => 'pending',
-            ])->save();
-
-            // The snapshot follows the content: regenerate after the response so the preview
-            // always shows the version people will actually open (R-28 §10).
-            $fileId = $file->id;
-            dispatch(function () use ($fileId) {
-                $fresh = File::withoutGlobalScope('team')->find($fileId);
-
-                if ($fresh !== null && $fresh->preview_status === 'pending') {
-                    app(FilePreviewService::class)->generate($fresh);
-                }
-            })->afterResponse();
-
-            return $version;
-        });
+            throw $e;
+        }
 
         // Governance watches people, not platforms (R-28 §29, owner policy): a human saving
         // content is what the hide-the-evidence rules look at, once the response is out.
@@ -115,6 +96,56 @@ class FileVersions
             $fileId = $file->id;
             dispatch(fn () => app(FileGovernance::class)->afterReplace($fileId, $userId))->afterResponse();
         }
+
+        return $version;
+    }
+
+    private function recordVersion(File $file, string $path, string $binary, ?string $mime, ?int $userId, ?string $platform, string $action, ?string $newName, ?int $expectedBase): FileVersion
+    {
+        // Hold the file row for the rest of this transaction, so two saves are numbered one after the other.
+        File::withoutGlobalScopes()->whereKey($file->id)->lockForUpdate()->first();
+
+        // The trail itself is the authority on numbering — never an in-memory attribute.
+        $next = ((int) FileVersion::where('file_id', $file->id)->max('version')) + 1;
+
+        if ($expectedBase !== null && $expectedBase !== $next - 1) {
+            throw new VersionConflictException($next - 1);
+        }
+
+        $version = FileVersion::create([
+            'file_id' => $file->id,
+            'version' => $next,
+            'name' => $newName ?? $file->name,
+            'size' => strlen($binary),
+            'mime' => $mime ?? $file->mime,
+            'path' => $path,
+            'checksum' => hash('sha256', $binary),
+            'created_by' => $userId,
+            'origin_platform' => $platform,
+            'action' => $action,
+            'created_at' => now(),
+        ]);
+
+        $file->forceFill([
+            'name' => $newName ?? $file->name,
+            'size' => strlen($binary),
+            'mime' => $mime ?? $file->mime,
+            'path' => $path,
+            'checksum' => $version->checksum,
+            'current_version' => $next,
+            'preview_status' => 'pending',
+        ])->save();
+
+        // The snapshot follows the content: regenerate after the response so the preview
+        // always shows the version people will actually open (R-28 §10).
+        $fileId = $file->id;
+        dispatch(function () use ($fileId) {
+            $fresh = File::withoutGlobalScope('team')->find($fileId);
+
+            if ($fresh !== null && $fresh->preview_status === 'pending') {
+                app(FilePreviewService::class)->generate($fresh);
+            }
+        })->afterResponse();
 
         return $version;
     }
