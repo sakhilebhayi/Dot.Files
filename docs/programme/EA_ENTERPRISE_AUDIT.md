@@ -143,7 +143,7 @@ Severity per the brief. "Owner" means the item needs the owner's access, credent
 | O-06 | Low | No `SECURITY.md` and no Dependabot config; `dependency-review.yml` uses outdated action versions | |
 | O-07 | High (test) | The Pint CI step never checks anything on a clean checkout (`--dirty` passes empty) | `ci.yml` |
 | O-08 | Medium | CI lacks PHPStan, `composer audit`, an asset-build check, a migration run on the production engine and JS tests; README says "schedules nothing" but `routes/console.php` schedules the purge | |
-| O-09 | Low | Production database engine is not recorded (`.env.example` says pgsql, R-28 says shared MySQL) | **Owner**: confirm |
+| O-09 | Low | Production database engine is not recorded in the repo (`.env.example` says pgsql, R-28 says shared MySQL). Answered 2026-11-27: production is **SQLite**, about 336 KB | fix the docs and `.env.example` (EA-7) |
 
 ## 4. Verified sound (positive evidence)
 
@@ -178,6 +178,6 @@ Severity per the brief. "Owner" means the item needs the owner's access, credent
 1. Confirm the host's `MAIL_*` settings for files.infodot.co.za (real From on the Dot domain), then allow one controlled test send (E-01).
 2. DNS: DMARC `p=quarantine` with a `rua=` address once alignment is confirmed; consider SPF `-all` (E-04).
 3. Report the host's Ghostscript version and ImageMagick `policy.xml` (S-05).
-4. Confirm the production database engine (O-09).
+4. ~~Confirm the production database engine (O-09)~~: answered, SQLite.
 5. Choose an outside uptime monitor that the host's bot protection allows (O-03).
-6. Backups remain paused by your decision. Before each phase deploy, a verified manual database copy is still needed (brief rule).
+6. Before each phase deploy, take and verify a backup from the InfoDot repo: `gh workflow run backups.yml -f mode=run -f keys=files`, then `-f mode=verify`. InfoDot's `backups.yml` covers Dot.Files under the key `files`, and an account-wide `dot-backup` crontab entry also took a copy at 02:40 UTC on 2026-11-27. So the pre-deploy-copy part of O-01 is covered from outside this repo; the CI gate and rollback are not.
