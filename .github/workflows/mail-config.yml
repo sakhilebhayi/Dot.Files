@@ -51,7 +51,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
               "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-              DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}" MODE="$MODE" MAIL_TEST_TO="$MAIL_TEST_TO" \
+              DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}" MODE="$MODE" MAIL_TEST_TO="$(printf '%q' "$MAIL_TEST_TO")" \
               'bash -s' <<'MAIL'
           set -euo pipefail
           PHP=php
@@ -95,7 +95,8 @@ jobs:
 
             test)
               $PHP artisan tinker --execute '
-                $to = trim((string) getenv("MAIL_TEST_TO"));
+                // The secret may hold a display name, quotes or spaces ("Name <you@example.com>"): take the address in it.
+                $to = preg_match("/[^\\s<>\"\x27,;]+@[^\\s<>\"\x27,;]+/", (string) getenv("MAIL_TEST_TO"), $found) ? $found[0] : trim((string) getenv("MAIL_TEST_TO"));
                 $targets = filter_var($to, FILTER_VALIDATE_EMAIL) ? [$to] : App\Models\User::where("is_platform_operator", true)->whereNotNull("email")->pluck("email")->all();
                 echo "recipients: ".count($targets)." (".(filter_var($to, FILTER_VALIDATE_EMAIL) ? "MAIL_TEST_TO secret" : ($to !== "" ? "MAIL_TEST_TO is not a valid address; operator accounts" : "operator accounts")).")\n";
                 $sent = 0; $failed = 0;
