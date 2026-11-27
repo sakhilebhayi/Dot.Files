@@ -1,0 +1,109 @@
+name: Mail Config
+
+# Owner instruction 2026-11-27: Dot.Files sends mail with the same settings InfoDot uses. Fixed modes only, never a
+# general remote shell, and no value is ever printed (the repository and its logs are public):
+#
+#   status  which MAIL_* names are set in the Dot.Files .env, and the mailer and sender in force (names, never secrets)
+#   copy    copy InfoDot's MAIL_MAILER/SCHEME/HOST/PORT/USERNAME/PASSWORD/ENCRYPTION/FROM_ADDRESS lines, on the host,
+#           into the Dot.Files .env (previous copy kept as .env.bak-mail, mode 600), set MAIL_FROM_NAME="Dot.Files",
+#           then rebuild the config cache. The values go from file to file on the host and never leave it.
+#   test    send one short test email to each platform-operator account of Dot.Files and report sent or failed
+#           (counts only; no address is printed)
+#
+# InfoDot's folder is found the way InfoDot's own tools/apply-secrets.sh finds it: the single Laravel app under
+# ~/infodot.<domain> (or ~/public_html).
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'status, copy or test'
+        required: true
+        default: status
+
+concurrency:
+  group: files-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  mail:
+    name: Mail config (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check the mode
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          case "$MODE" in status|copy|test) ;; *) echo "::error::mode must be status, copy or test"; exit 1 ;; esac
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Run
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+              "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+              DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}" MODE="$MODE" \
+              'bash -s' <<'MAIL'
+          set -euo pipefail
+          PHP=php
+          cd "$DEPLOY_PATH"
+          [ -f .env ] || { echo "::error::the Dot.Files .env is missing"; exit 1; }
+          NAMES="MAIL_MAILER MAIL_SCHEME MAIL_HOST MAIL_PORT MAIL_USERNAME MAIL_PASSWORD MAIL_ENCRYPTION MAIL_FROM_ADDRESS"
+
+          report() {
+            for N in $NAMES MAIL_FROM_NAME; do
+              if grep -q "^$N=" .env; then echo "  $N: set"; else echo "  $N: not set"; fi
+            done
+            INFO="$($PHP artisan tinker --execute 'echo config("mail.default")."|".config("mail.from.address");' 2>/dev/null | tail -1 || true)"
+            echo "== in force: mailer=${INFO%%|*} sender domain=${INFO#*@}"
+          }
+
+          case "$MODE" in
+            status)
+              report ;;
+
+            copy)
+              D="$HOME/infodot.infodot.co.za"; [ -d "$D" ] || D="$HOME/public_html"
+              SRC="$(find "$D" -maxdepth 2 -name artisan -type f -exec dirname {} \; | sort -u)"
+              [ "$(printf '%s\n' "$SRC" | grep -c .)" = 1 ] || { echo "::error::expected exactly one InfoDot app under $D"; exit 1; }
+              [ -f "$SRC/.env" ] || { echo "::error::InfoDot's .env was not found"; exit 1; }
+              [ "$(cd "$SRC" && pwd -P)" != "$(pwd -P)" ] || { echo "::error::the InfoDot folder resolved to Dot.Files itself"; exit 1; }
+              grep -q '^MAIL_HOST=' "$SRC/.env" || { echo "::error::InfoDot's .env has no MAIL_HOST; nothing copied"; exit 1; }
+
+              cp .env .env.bak-mail; chmod 600 .env.bak-mail
+              n=0
+              for N in $NAMES; do
+                LINE="$(grep -m1 "^$N=" "$SRC/.env" || true)"
+                grep -v "^$N=" .env > .env.tmp || true
+                if [ -n "$LINE" ]; then printf '%s\n' "$LINE" >> .env.tmp; n=$((n+1)); echo "  $N: copied"; else echo "  $N: not set in InfoDot, removed here"; fi
+                mv .env.tmp .env
+              done
+              grep -v '^MAIL_FROM_NAME=' .env > .env.tmp || true; printf 'MAIL_FROM_NAME="Dot.Files"\n' >> .env.tmp; mv .env.tmp .env
+              chmod 600 .env
+              echo "== $n setting(s) copied from InfoDot; MAIL_FROM_NAME set to Dot.Files; previous .env kept as .env.bak-mail"
+              $PHP artisan config:cache > /dev/null && echo "== config cache rebuilt"
+              report ;;
+
+            test)
+              $PHP artisan tinker --execute '
+                $ops = App\Models\User::where("is_platform_operator", true)->whereNotNull("email")->get();
+                $sent = 0; $failed = 0;
+                foreach ($ops as $u) {
+                    try {
+                        Illuminate\Support\Facades\Mail::raw("This is a one-off test from Dot.Files production, sent with the mail settings it now shares with InfoDot. No action is needed.", function ($m) use ($u) { $m->to($u->email)->subject("Dot.Files mail test"); });
+                        $sent++;
+                    } catch (Throwable $e) {
+                        $failed++; echo "failed: ".class_basename($e)."\n";
+                    }
+                }
+                echo "operators: ".$ops->count()." sent: $sent failed: $failed\n";' 2>/dev/null | grep -E '^(operators|failed):' ;;
+          esac
+          MAIL
