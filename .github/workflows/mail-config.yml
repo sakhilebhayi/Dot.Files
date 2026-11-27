@@ -7,8 +7,8 @@ name: Mail Config
 #   copy    copy InfoDot's MAIL_MAILER/SCHEME/HOST/PORT/USERNAME/PASSWORD/ENCRYPTION/FROM_ADDRESS lines, on the host,
 #           into the Dot.Files .env (previous copy kept as .env.bak-mail, mode 600), set MAIL_FROM_NAME="Dot.Files",
 #           then rebuild the config cache. The values go from file to file on the host and never leave it.
-#   test    send one short test email to each platform-operator account of Dot.Files and report sent or failed
-#           (counts only; no address is printed)
+#   test    send one short test email to the address in the MAIL_TEST_TO repository secret (masked in the logs) or,
+#           when that secret is not set, to each platform-operator account; reports sent or failed, counts only
 #
 # InfoDot's folder is found the way InfoDot's own tools/apply-secrets.sh finds it: the single Laravel app under
 # ~/infodot.<domain> (or ~/public_html).
@@ -47,10 +47,11 @@ jobs:
       - name: Run
         env:
           MODE: ${{ inputs.mode }}
+          MAIL_TEST_TO: ${{ secrets.MAIL_TEST_TO }}
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
               "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-              DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}" MODE="$MODE" \
+              DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}" MODE="$MODE" MAIL_TEST_TO="$MAIL_TEST_TO" \
               'bash -s' <<'MAIL'
           set -euo pipefail
           PHP=php
@@ -94,16 +95,18 @@ jobs:
 
             test)
               $PHP artisan tinker --execute '
-                $ops = App\Models\User::where("is_platform_operator", true)->whereNotNull("email")->get();
+                $to = trim((string) getenv("MAIL_TEST_TO"));
+                $targets = filter_var($to, FILTER_VALIDATE_EMAIL) ? [$to] : App\Models\User::where("is_platform_operator", true)->whereNotNull("email")->pluck("email")->all();
+                echo "recipients: ".count($targets)." (".(filter_var($to, FILTER_VALIDATE_EMAIL) ? "MAIL_TEST_TO secret" : ($to !== "" ? "MAIL_TEST_TO is not a valid address; operator accounts" : "operator accounts")).")\n";
                 $sent = 0; $failed = 0;
-                foreach ($ops as $u) {
+                foreach ($targets as $address) {
                     try {
-                        Illuminate\Support\Facades\Mail::raw("This is a one-off test from Dot.Files production, sent with the mail settings it now shares with InfoDot. No action is needed.", function ($m) use ($u) { $m->to($u->email)->subject("Dot.Files mail test"); });
+                        Illuminate\Support\Facades\Mail::raw("This is a one-off test from Dot.Files production, sent with the mail settings it now shares with InfoDot. No action is needed.", function ($m) use ($address) { $m->to($address)->subject("Dot.Files mail test"); });
                         $sent++;
                     } catch (Throwable $e) {
                         $failed++; echo "failed: ".class_basename($e)."\n";
                     }
                 }
-                echo "operators: ".$ops->count()." sent: $sent failed: $failed\n";' 2>/dev/null | grep -E '^(operators|failed):' ;;
+                echo "sent: $sent failed: $failed\n";' 2>/dev/null | grep -E '^(recipients|sent|failed):' ;;
           esac
           MAIL
