@@ -6,8 +6,11 @@ use App\Http\Livewire\FileBrowser;
 use App\Http\Livewire\FileSearch;
 use App\Http\Livewire\FileShares;
 use App\Http\Livewire\NavigationDropdown;
+use App\Http\Livewire\NotificationBell;
 use App\Models\File;
 use App\Models\Folder;
+use App\Services\TrashPurge;
+use App\Support\EssentialCron;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
@@ -26,6 +29,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot()
     {
+        // Owner order 2026-11-27: only email and notification work runs from cron (config/dot_cron.php).
+        EssentialCron::listen();
+
+        // EA-3: the 30-day trash window is enforced from the app's own traffic, at most hourly, after the response.
+        if (! $this->app->runningInConsole() || $this->app->runningUnitTests()) {
+            $this->app->terminating(fn () => app(TrashPurge::class)->sweepIfDue());
+        }
+
         // Re-register Jetstream's x-jet-* Blade component aliases.
         // These were registered by Jetstream 1.x but removed in Jetstream 4+.
         // Our published views still use the x-jet-* prefix so we restore them here.
@@ -60,6 +71,7 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('file-shares', FileShares::class);
         Livewire::component('navigation-dropdown', NavigationDropdown::class);
         Livewire::component('file-search', FileSearch::class);
+        Livewire::component('notification-bell', NotificationBell::class);
 
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());

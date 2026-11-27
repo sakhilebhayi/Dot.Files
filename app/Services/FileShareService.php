@@ -6,6 +6,8 @@ use App\Models\File;
 use App\Models\FileShare;
 use App\Models\Team;
 use App\Models\User;
+use App\Notifications\FilesActivity;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -123,6 +125,19 @@ class FileShareService
             ]);
             $this->record($file, $share, 'requested', $by->email, $email);
 
+            // EA-3: the people who can decide hear about it (bell and email), the asker excepted.
+            $team = $file->team()->withoutGlobalScopes()->first();
+            app(Notifier::class)->send(
+                $this->deciders($team)->reject(fn (User $u) => $u->is($by)),
+                new FilesActivity(
+                    'share.requested',
+                    'A share is waiting for your decision',
+                    [$by->name.' asked to share "'.$file->name.'" with '.$email.' ('.$days.' days, '.($permission === 'view' ? 'view only' : 'view and download').').', 'Nothing is shared until an owner or administrator approves it.'],
+                    route('approvals'),
+                    'Review the request',
+                ),
+            );
+
             return $share;
         });
     }
@@ -152,6 +167,7 @@ class FileShareService
         $share->refresh();
 
         $this->record($file, $share, 'approved', $by->email, $share->email);
+        $this->tellRequester($by, $share, $file, 'share.approved', 'Your share request was approved', $share->email.' can now open "'.$file->name.'" until '.$share->expires_at->format('j M Y').'.');
 
         return $share;
     }
@@ -171,8 +187,31 @@ class FileShareService
         $share->refresh();
 
         $this->record($file, $share, 'declined', $by->email, $share->email, $note ?: null);
+        $this->tellRequester($by, $share, $file, 'share.declined', 'Your share request was declined', '"'.$file->name.'" was not shared with '.$share->email.'.'.($note !== '' ? ' Note: '.$note : ''));
 
         return $share;
+    }
+
+    /** Owner and administrators of a company: the people who decide its shares. */
+    public function deciders(?Team $team): Collection
+    {
+        if ($team === null) {
+            return collect();
+        }
+
+        return $team->users()->wherePivot('role', 'admin')->get()->push($team->owner)->filter()->unique('id')->values();
+    }
+
+    /** The member who asked hears the decision (EA-3), unless they decided it themselves. */
+    private function tellRequester(User $by, FileShare $share, File $file, string $kind, string $title, string $line): void
+    {
+        $asker = $share->created_by !== null ? User::find($share->created_by) : null;
+
+        if ($asker === null || $asker->is($by)) {
+            return;
+        }
+
+        app(Notifier::class)->send([$asker], new FilesActivity($kind, $title, [$line, 'Decided by '.$by->name.'.'], route('files.open', $file->uuid), 'Open the file'));
     }
 
     /** A permission is one of the presets the model names — nothing else is stored. */
