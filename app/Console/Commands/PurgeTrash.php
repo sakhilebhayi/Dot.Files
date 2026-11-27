@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Obj;
+use App\Services\TrashPurge;
 use Illuminate\Console\Command;
 
 /**
@@ -20,16 +21,14 @@ class PurgeTrash extends Command
     {
         $days = (int) ($this->option('days') ?: Obj::TRASH_DAYS);
 
-        $stale = Obj::withoutGlobalScope('team')
-            ->whereNotNull('trashed_at')
-            ->where('trashed_at', '<', now()->subDays($days))
-            ->get();
+        $purge = app(TrashPurge::class);
+        $total = 0;
 
-        foreach ($stale as $obj) {
-            $obj->delete();
-        }
+        do {
+            $total += $removed = $purge->overdue($days);
+        } while ($removed === TrashPurge::BATCH);
 
-        $this->info("Purged {$stale->count()} record(s) trashed more than {$days} days ago.");
+        $this->info("Purged {$total} record(s) trashed more than {$days} days ago.");
 
         return self::SUCCESS;
     }

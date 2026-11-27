@@ -19,5 +19,6 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// R-27: the trash empties itself of records older than the 30-day holding window.
+// R-27: the trash empties itself of records older than the 30-day holding window. Paused by the owner's cron order
+// (config/dot_cron.php) while only email work runs; the app also purges opportunistically (App\Services\TrashPurge).
 Schedule::command('files:purge-trash')->dailyAt('03:40');

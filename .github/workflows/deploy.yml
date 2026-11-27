@@ -123,6 +123,13 @@ jobs:
           $PHP artisan view:cache
           $PHP artisan event:cache
 
+          # EA-3: say which mailer and sender this release will use, so a mail setting that cannot deliver is seen at
+          # deploy time, not when someone's notice never arrives. Read-only and tolerant: it never fails the deploy.
+          MAILINFO="$($PHP artisan tinker --execute 'echo config("mail.default")."|".config("mail.from.address");' 2>/dev/null | tail -1 || true)"
+          echo "== mail: mailer=${MAILINFO%%|*} from=${MAILINFO#*|}"
+          case "${MAILINFO%%|*}" in log|array|"") echo "::warning::Mail is not delivered (mailer '${MAILINFO%%|*}'): set MAIL_MAILER and MAIL_* on the host." ;; esac
+          case "${MAILINFO#*|}" in *@example.com|"") echo "::warning::MAIL_FROM_ADDRESS is not set to a real sender on the host." ;; no-reply@files.infodot.co.za) echo "::warning::MAIL_FROM_ADDRESS is the built-in fallback; set the owner's real, SPF/DKIM-aligned sender on the host." ;; esac
+
           APP_DIR="$(basename "$DEPLOY_PATH")"
           if [ "$DOCROOT" != "$DEPLOY_PATH" ] && grep -qs "$APP_DIR/vendor/autoload.php" "$DOCROOT/index.php"; then
             for target in build images img css js dot-ui favicon.ico favicon-16x16.png favicon-32x32.png apple-touch-icon.png robots.txt; do

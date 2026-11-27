@@ -904,6 +904,20 @@ body {
     display: contents;
 }
 
+/* EA-3: the bell's Livewire root takes no box either; the shared header lays the bell out. */
+.fx-bellhost {
+    display: contents;
+}
+
+/* A notice's time sits under its text in the panel's secondary ink, figures aligned. */
+.fx-notice-time {
+    display: block;
+    margin-top: 2px;
+    color: var(--dhp-ink-2);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
 /* The switcher's trigger on the bar, in the ledger's greys. */
 .dh .dsw {
     --dsw-btn-ink: var(--ink-soft);

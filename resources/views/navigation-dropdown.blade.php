@@ -8,10 +8,18 @@
     $user = Auth::user();
     $team = $user->currentTeam;
 
+    // EA-3: the approvals link carries what waits for this person's decision (share requests and open activity flags),
+    // for owners and administrators of a company only. Real counts, team-scoped like everything else here.
+    $decides = $team && ! $team->personal_team && ($user->ownsTeam($team) || $user->hasTeamRole($team, 'admin'));
+    $waiting = $decides
+        ? App\Models\FileShare::pending()->whereIn('file_id', App\Models\File::query()->select('id'))->count()
+            + App\Models\FileFlag::open()->where('team_id', $team->id)->count()
+        : 0;
+
     $nav = [
         ['label' => __('Files'), 'href' => route('files'), 'current' => request()->routeIs('files')],
         ['label' => __('Shared with me'), 'href' => route('shared'), 'current' => request()->routeIs('shared')],
-        ['label' => __('Sharing approvals'), 'href' => route('approvals'), 'current' => request()->routeIs('approvals')],
+        ['label' => __('Sharing approvals'), 'href' => route('approvals'), 'current' => request()->routeIs('approvals'), 'badge' => $waiting > 0 ? ($waiting > 99 ? '99+' : $waiting) : null, 'attrs' => $waiting > 0 ? ['aria-label' => __('Sharing approvals, :n waiting', ['n' => $waiting])] : []],
         ['label' => __('Trash'), 'href' => route('trash'), 'current' => request()->routeIs('trash')],
     ];
 
@@ -72,6 +80,7 @@
 
         {{-- Platform switcher (shared Dot UI): what InfoDot says the current company holds; a personal workspace has no company. --}}
         <x-slot:tools>
+            <livewire:notification-bell />
             <x-dot.switcher platform="files"
                 :company="$team && ! $team->personal_team ? $team->infodot_team_uuid : null"
                 :company-name="$team?->name"

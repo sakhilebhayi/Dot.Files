@@ -83,9 +83,12 @@ return [
     |
     */
 
+    // EA-3: a From address is never empty. MAIL_FROM_ADDRESS=null (as .env.example shipped) used to resolve to null,
+    // and every email then failed to send. Unset, it falls back to no-reply at this app's own host; the deploy reports
+    // which sender is in force, so the owner can set the real one (SPF/DKIM-aligned) on the host.
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'address' => env('MAIL_FROM_ADDRESS') ?: 'no-reply@'.(parse_url((string) env('APP_URL', 'https://files.infodot.co.za'), PHP_URL_HOST) ?: 'files.infodot.co.za'),
+        'name' => env('MAIL_FROM_NAME') ?: 'Dot.Files',
     ],
 
     /*
